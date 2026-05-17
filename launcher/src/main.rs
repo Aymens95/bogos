@@ -11,7 +11,6 @@ fn find_project_root() -> Result<PathBuf, String> {
     let candidates = [
         exe_dir.to_path_buf(),
         exe_dir.parent().unwrap_or(exe_dir).to_path_buf(),
-        PathBuf::from(r"D:\VS\discord-bot"),
     ];
 
     for candidate in candidates {
