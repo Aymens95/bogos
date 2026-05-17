@@ -1,0 +1,11 @@
+node_modules/
+launcher/target/
+data/
+.env
+Discord Music Bot.exe
+questions.md
+old plans/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
