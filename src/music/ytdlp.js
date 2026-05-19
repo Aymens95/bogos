@@ -99,7 +99,7 @@ async function getYouTubeCandidates(query, limit = 5) {
     query
   ]);
 
-  return result
+  const fallbackCandidates = result
     .split(/\r?\n/)
     .filter(Boolean)
     .map((id) => ({
@@ -108,6 +108,24 @@ async function getYouTubeCandidates(query, limit = 5) {
       duration: 0,
       url: `https://www.youtube.com/watch?v=${id}`
     }));
+
+  const enriched = await Promise.all(fallbackCandidates.map(async (candidate) => {
+    try {
+      const info = await getVideoInfo(candidate.url);
+      return {
+        ...candidate,
+        title: info.title || candidate.title,
+        artist: info.uploader || info.channel || candidate.artist,
+        duration: Number(info.duration || candidate.duration),
+        thumbnail: info.thumbnail || null
+      };
+    } catch {
+      return candidate;
+    }
+  }));
+
+  const usable = enriched.filter((candidate) => candidate.title !== "YouTube video" || candidate.artist !== "YouTube");
+  return usable.length ? usable : enriched;
 }
 
 async function getAudioUrl(youtubeUrl) {

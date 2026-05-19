@@ -130,7 +130,36 @@ function buildAddedToQueueEmbed({ query, result, user }) {
   return embed;
 }
 
+function buildSearchResultsPayload({ query, candidates, userId }) {
+  const embed = new EmbedBuilder()
+    .setColor(0x00a8ff)
+    .setTitle("Search Results")
+    .setDescription(candidates.map((candidate, index) => {
+      const duration = candidate.durationFormatted || "0:00";
+      return `${index + 1}. **${candidate.title}** - ${candidate.artist || "Unknown"} (${duration})`;
+    }).join("\n") || "No results found.")
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(`search_select:${userId}`)
+      .setPlaceholder(`Choose a result for ${query}`.slice(0, 100))
+      .setDisabled(!candidates.length)
+      .addOptions(candidates.length ? candidates.map((candidate, index) => ({
+        label: `${index + 1}. ${candidate.title}`.slice(0, 100),
+        description: `${candidate.artist || "Unknown"} • ${candidate.durationFormatted || "0:00"}`.slice(0, 100),
+        value: String(index)
+      })) : [{ label: "No results", value: "empty" }])
+  );
+
+  return {
+    embeds: [embed],
+    components: [row]
+  };
+}
+
 module.exports = {
   buildAddedToQueueEmbed,
-  buildNowPlayingPayload
+  buildNowPlayingPayload,
+  buildSearchResultsPayload
 };

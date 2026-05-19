@@ -1,7 +1,7 @@
 const { Events } = require("discord.js");
 const { executeCommand } = require("../handlers/commandHandler");
 const { handleButton } = require("../handlers/buttonHandler");
-const { handleQueueSelect } = require("../handlers/selectHandler");
+const { handleQueueSelect, handleSearchSelect } = require("../handlers/selectHandler");
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -17,6 +17,11 @@ module.exports = {
     }
 
     if (interaction.isStringSelectMenu()) {
+      if (interaction.customId.startsWith("search_select:")) {
+        await handleSearchSelect(interaction, client);
+        return;
+      }
+
       await handleQueueSelect(interaction, client);
     }
   }
