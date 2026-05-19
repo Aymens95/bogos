@@ -113,7 +113,7 @@ function Read-NewLogLines {
                 continue
             }
 
-            if ($IsBot -and $line -match "Logged in as") {
+            if ($IsBot -and $line -match "Logged in as|INFO Logged in") {
                 Set-LauncherStatus "Running"
             }
 
@@ -124,9 +124,25 @@ function Read-NewLogLines {
     }
 }
 
+function Test-BotLogIndicatesRunning {
+    if (-not (Test-Path -LiteralPath $script:botLogFile)) {
+        return $false
+    }
+
+    try {
+        return $null -ne (Select-String -LiteralPath $script:botLogFile -Pattern "Logged in as|INFO Logged in" -Quiet)
+    } catch {
+        return $false
+    }
+}
+
 function Update-Processes {
     Read-NewLogLines "bot" $script:botLogFile ([ref]$script:botLogPosition) -IsBot
     Read-NewLogLines "task" $script:taskLogFile ([ref]$script:taskLogPosition)
+
+    if ($script:status -eq "Starting" -and $null -ne $script:botProcess -and -not $script:botProcess.HasExited -and (Test-BotLogIndicatesRunning)) {
+        Set-LauncherStatus "Running"
+    }
 
     if ($null -ne $script:botProcess -and $script:botProcess.HasExited) {
         $exitCode = $script:botProcess.ExitCode

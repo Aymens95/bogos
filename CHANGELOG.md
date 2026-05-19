@@ -86,6 +86,7 @@ All notable Bogos changes made so far are summarized here.
 ### Fixed
 
 - Fixed launcher panel closing after the bot logged in.
+- Fixed launcher staying stuck on `Starting` after Phase 13 structured logging changed the ready log format.
 - Fixed Stop Bot leaving orphan `node.exe` processes on some Windows configurations.
 - Fixed Stop Bot PowerShell 5.1 issue caused by using reserved `$Pid`/PID-style variable names in process stopping logic.
 - Fixed launcher failing on systems where `powershell.exe` exists but is not in `PATH`.

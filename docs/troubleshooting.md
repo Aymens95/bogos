@@ -33,6 +33,12 @@ Set `BOGOS_LOG_FILE=logs/bogos.log` in `.env` to append structured logs to a fil
 
 Logs redact common token formats, but avoid pasting full logs publicly without reviewing them first.
 
+## Launcher Stuck On Starting
+
+If Bogos is already running but the launcher still shows `Starting`, restart the launcher first. The control panel detects the bot as running from the bot log ready line and should switch to `Running` after the next poll.
+
+If it stays stuck, check `logs/bogos-bot.log` for a `Logged in as` line and run `npm run check`.
+
 ## Spotify Links Are Wrong Or Fail
 
 Spotify support is best-effort.

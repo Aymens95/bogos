@@ -5,7 +5,7 @@ module.exports = {
   name: Events.ClientReady,
   once: true,
   execute(client) {
-    logger.info("Logged in", { user: client.user.tag });
+    logger.info("Logged in as", { user: client.user.tag });
     client.user.setActivity("/play to start music", { type: ActivityType.Listening });
   }
 };
