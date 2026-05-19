@@ -4,7 +4,7 @@ Node.js Discord music bot that plays YouTube audio, resolves Spotify metadata, s
 
 ## Setup
 
-1. Install Node.js 18 or newer.
+1. Install Node.js 22.12.0 or newer.
 2. Install `ffmpeg` and `yt-dlp` so both are available in `PATH`.
 3. Install dependencies:
 
@@ -30,3 +30,4 @@ npm start
 - Spotify links are used for metadata, then resolved to YouTube audio.
 - Playlist and album imports are capped at 100 tracks.
 - The bot keeps queue/player state isolated per guild.
+- See [CHANGELOG.md](CHANGELOG.md) for completed features, fixes, and known limitations.

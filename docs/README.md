@@ -9,4 +9,4 @@ Bogos is a Discord music bot that plays YouTube audio, supports queue controls, 
 - [Permissions](permissions.md)
 - [Troubleshooting](troubleshooting.md)
 - [Developer Notes](developer-notes.md)
-
+- [Changelog](../CHANGELOG.md)
