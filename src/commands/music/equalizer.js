@@ -1,5 +1,6 @@
 const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
 const Equalizer = require("../../music/Equalizer");
+const logger = require("../../utils/logger");
 const { canUseDjControl } = require("../../utils/permissions");
 const { requireSameVoiceChannel } = require("../../utils/voiceChecks");
 
@@ -41,7 +42,7 @@ module.exports = {
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      console.error("Equalizer change failed:", error);
+      logger.error("Equalizer change failed", { guildId: interaction.guildId, error });
       await interaction.editReply("❌ Could not apply filter. Try again.");
     }
   }

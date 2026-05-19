@@ -56,6 +56,9 @@ All notable Bogos changes made so far are summarized here.
 - Added `/history list` and `/history play position:<number>`.
 - Added per-server default volume, loop mode, autoplay, max queue size, and preferred text channel settings.
 - Added `/settings defaults`, `/settings max-queue`, and `/settings text-channel`.
+- Added structured logger utility with optional `BOGOS_LOG_FILE` file output and `BOGOS_DEBUG=1` debug logging.
+- Added startup dependency checks for Node.js, FFmpeg, and yt-dlp.
+- Added command timing logs.
 
 ### Changed
 
@@ -75,6 +78,7 @@ All notable Bogos changes made so far are summarized here.
 - Changed `/queue` default behavior to show a compact queue embed instead of refreshing Now Playing.
 - Changed queue-add commands to enforce the server max queue size setting.
 - Changed playback-starting commands to use the preferred text channel setting when configured.
+- Changed startup, deploy, command, storage, playback, button, lyrics, and equalizer logs to use the structured logger.
 - Changed `.gitignore` to ignore `logs/` and `*.log`.
 - Removed project planning Markdown files from Git tracking while keeping them local and ignored.
 - Removed Markdown file buttons from the launcher panel.
@@ -117,6 +121,9 @@ All notable Bogos changes made so far are summarized here.
 - Confirmed live Discord `/history` list and replay test passes.
 - Confirmed settings validation smoke test passes.
 - Confirmed live Discord settings test passes.
+- Confirmed `npm run check` passes after health and maintenance logging changes.
+- Confirmed logger file-output/redaction smoke test passes.
+- Confirmed live restart/log smoke test passes.
 - Confirmed `npm run check` passes after each completed phase.
 
 ### Known Issues

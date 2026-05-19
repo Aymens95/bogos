@@ -11,6 +11,7 @@ const ytdlp = require("./ytdlp");
 const { LOOP_MODES } = require("../utils/constants");
 const { setDisconnectTimer, clearDisconnectTimer } = require("../utils/disconnectTimer");
 const { buildNowPlayingPayload } = require("../utils/embedBuilder");
+const logger = require("../utils/logger");
 const { getSettings } = require("../utils/serverSettings");
 
 async function safeDeleteMessage(message) {
@@ -20,7 +21,7 @@ async function safeDeleteMessage(message) {
     await message.delete();
   } catch (error) {
     // Message may already have been deleted manually.
-    console.warn(`Could not delete message ${message.id}:`, error.message);
+    logger.warn("Could not delete message", { messageId: message.id, error: error.message });
   }
 }
 
@@ -43,7 +44,7 @@ async function deleteRecentNowPlayingEmbeds(queue, client) {
       await safeDeleteMessage(message);
     }
   } catch (error) {
-    console.warn("Could not scan for stale Now Playing embeds:", error.message);
+    logger.warn("Could not scan for stale Now Playing embeds", { error: error.message });
   }
 }
 
@@ -107,11 +108,11 @@ class Player {
     });
 
     player.on(AudioPlayerStatus.Idle, () => {
-      this.handleSongEnd(guildId).catch((error) => console.error("Song end handler failed:", error));
+      this.handleSongEnd(guildId).catch((error) => logger.error("Song end handler failed", { guildId, error }));
     });
 
     player.on("error", (error) => {
-      console.error(`Audio player error in guild ${guildId}:`, error);
+      logger.error("Audio player error", { guildId, error });
       this.handleSongEnd(guildId).catch(() => {});
     });
 
@@ -137,7 +138,7 @@ class Player {
           entersState(connection, VoiceConnectionStatus.Connecting, 5000)
         ]);
       } catch {
-        this.disconnect(guildId).catch((error) => console.error("Disconnect cleanup failed:", error));
+        this.disconnect(guildId).catch((error) => logger.error("Disconnect cleanup failed", { guildId, error }));
       }
     });
 
@@ -176,7 +177,7 @@ class Player {
       const audioUrl = await ytdlp.getAudioUrl(song.youtubeUrl);
       await this.startAudio(guildId, song, audioUrl, seekSeconds);
     } catch (error) {
-      console.error(`Could not play ${song.title || "current song"}:`, error.message);
+      logger.error("Could not play current song", { guildId, title: song.title || "current song", error: error.message });
       await this.skipFailedCurrent(guildId, song, error);
     }
   }
@@ -206,7 +207,7 @@ class Player {
 
     const ffmpeg = spawn("ffmpeg", ffmpegArgs, { windowsHide: true });
 
-    ffmpeg.on("error", (error) => console.error("FFmpeg failed:", error));
+    ffmpeg.on("error", (error) => logger.error("FFmpeg failed", { guildId, error }));
 
     const resource = createAudioResource(ffmpeg.stdout, {
       inputType: StreamType.OggOpus
@@ -226,7 +227,7 @@ class Player {
 
     this.currentHistoryKeys.set(guildId, key);
     if (!PlaybackHistory.add(guildId, song)) {
-      console.warn(`Could not record playback history for guild ${guildId}`);
+      logger.warn("Could not record playback history", { guildId });
     }
   }
 
@@ -275,7 +276,7 @@ class Player {
     if (nextIndex === null) {
       VoteSkip.clear(guildId);
       const autoplaySong = await Autoplay.getNextSong(queue).catch((error) => {
-        console.warn("Autoplay lookup failed:", error.message);
+        logger.warn("Autoplay lookup failed", { guildId, error: error.message });
         return null;
       });
 
@@ -410,7 +411,7 @@ class Player {
     await this.updateNowPlaying(guildId, 1, true).catch(() => {});
 
     setDisconnectTimer(guildId, () => {
-      this.disconnect(guildId).catch((error) => console.error("Disconnect cleanup failed:", error));
+      this.disconnect(guildId).catch((error) => logger.error("Disconnect cleanup failed", { guildId, error }));
     });
   }
 

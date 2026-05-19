@@ -16,6 +16,8 @@ Make sure Bogos was invited with the `applications.commands` scope.
 
 Run `/status` in Discord to check the current voice connection, playback state, queue, FFmpeg, yt-dlp, Node.js, and discord.js diagnostics.
 
+Bogos also logs startup dependency checks for Node.js, FFmpeg, and yt-dlp.
+
 Check:
 
 ```powershell
@@ -24,6 +26,12 @@ yt-dlp --version
 ```
 
 Also confirm you are in a voice channel and Bogos has `Connect` and `Speak`.
+
+## Log File
+
+Set `BOGOS_LOG_FILE=logs/bogos.log` in `.env` to append structured logs to a file. Use `BOGOS_DEBUG=1` only when you need extra debug output.
+
+Logs redact common token formats, but avoid pasting full logs publicly without reviewing them first.
 
 ## Spotify Links Are Wrong Or Fail
 

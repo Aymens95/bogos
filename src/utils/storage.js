@@ -1,12 +1,13 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const logger = require("./logger");
 
 function readJSON(filePath, fallback = {}) {
   try {
     if (!fs.existsSync(filePath)) return fallback;
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch (error) {
-    console.warn(`Could not read JSON file ${filePath}:`, error.message);
+    logger.warn("Could not read JSON file", { filePath, error: error.message });
     return fallback;
   }
 }
@@ -19,7 +20,7 @@ function writeJSON(filePath, data) {
     fs.renameSync(tempPath, filePath);
     return true;
   } catch (error) {
-    console.error(`Could not write JSON file ${filePath}:`, error.message);
+    logger.error("Could not write JSON file", { filePath, error: error.message });
     return false;
   }
 }

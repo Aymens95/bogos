@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const logger = require("../utils/logger");
 
 function getCommandFiles(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -52,10 +53,23 @@ async function executeCommand(interaction, client) {
     return;
   }
 
+  const startedAt = Date.now();
   try {
     await command.execute(interaction, client);
+    logger.info("Command completed", {
+      command: interaction.commandName,
+      guildId: interaction.guildId,
+      userId: interaction.user?.id,
+      durationMs: Date.now() - startedAt
+    });
   } catch (error) {
-    console.error(`Command failed: ${interaction.commandName}: ${describeError(error)}`);
+    logger.error("Command failed", {
+      command: interaction.commandName,
+      guildId: interaction.guildId,
+      userId: interaction.user?.id,
+      durationMs: Date.now() - startedAt,
+      error: describeError(error)
+    });
     const payload = { content: error.publicMessage || "An error occurred while running that command.", flags: 64 };
 
     if (interaction.deferred || interaction.replied) {

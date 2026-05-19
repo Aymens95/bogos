@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const { LOOP_MODES } = require("../utils/constants");
+const logger = require("../utils/logger");
 const { dataPath, readJSON, writeJSON } = require("../utils/storage");
 
 function filePath(guildId) {
@@ -77,7 +78,7 @@ function clear(guildId) {
     if (fs.existsSync(target)) fs.unlinkSync(target);
     return true;
   } catch (error) {
-    console.error(`Could not delete persisted queue for ${guildId}:`, error.message);
+    logger.error("Could not delete persisted queue", { guildId, error: error.message });
     return false;
   }
 }

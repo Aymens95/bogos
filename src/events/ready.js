@@ -1,10 +1,11 @@
 const { Events, ActivityType } = require("discord.js");
+const logger = require("../utils/logger");
 
 module.exports = {
   name: Events.ClientReady,
   once: true,
   execute(client) {
-    console.log(`Logged in as ${client.user.tag}`);
+    logger.info("Logged in", { user: client.user.tag });
     client.user.setActivity("/play to start music", { type: ActivityType.Listening });
   }
 };

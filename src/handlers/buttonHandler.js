@@ -3,6 +3,7 @@ const Favorites = require("../music/Favorites");
 const { LOOP_MODES } = require("../utils/constants");
 const VoteSkip = require("../music/VoteSkip");
 const { buildQueuePayload } = require("../utils/embedBuilder");
+const logger = require("../utils/logger");
 const { canUseDjControl } = require("../utils/permissions");
 const { requestSkip } = require("../utils/skipControl");
 
@@ -109,7 +110,7 @@ async function handleButton(interaction, client) {
     if (interaction.customId === "btn_forward") await client.player.seek(interaction.guildId, 10, true);
     await client.player.updateNowPlaying(interaction.guildId, 1, false, interaction.user.id).catch(() => {});
   } catch (error) {
-    console.error("Button action failed:", error);
+    logger.error("Button action failed", { customId: interaction.customId, guildId: interaction.guildId, userId: interaction.user?.id, error });
     const payload = { content: "That control failed.", flags: 64 };
     if (interaction.deferred || interaction.replied) {
       await interaction.followUp(payload).catch(() => {});

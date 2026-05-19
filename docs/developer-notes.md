@@ -30,8 +30,24 @@ Current data files:
 
 - `data/playlists/{guildId}.json`
 - `data/favorites/{userId}.json`
+- `data/settings/{guildId}.json`
+- `data/queues/{guildId}.json`
+- `data/history/{guildId}.json`
 
 `data/` is ignored by Git.
+
+## Logging
+
+Use `src/utils/logger.js` for new logs.
+
+Logs are structured as timestamped single-line records with `level message key=value` fields. The logger redacts common bot token and bearer token patterns.
+
+Optional environment variables:
+
+- `BOGOS_LOG_FILE` - append logs to a file, for example `logs/bogos.log`
+- `BOGOS_DEBUG=1` - enable debug logs
+
+Startup logs include dependency checks for Node.js, FFmpeg, and yt-dlp. Command logs include command name, guild ID, user ID, and duration in milliseconds.
 
 ## Interaction Handling
 
@@ -45,4 +61,3 @@ For buttons and select menus:
 ## Project Context
 
 For future AI or developer sessions, read the root `PROJECT_CONTEXT.md` first.
-

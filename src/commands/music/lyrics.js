@@ -1,5 +1,6 @@
 const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
 const Lyrics = require("../../music/Lyrics");
+const logger = require("../../utils/logger");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -44,7 +45,7 @@ module.exports = {
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
-      console.error("Lyrics lookup failed:", error.message);
+      logger.warn("Lyrics lookup failed", { guildId: interaction.guildId, error: error.message });
       await interaction.editReply("Lyrics lookup failed. Try again later.");
     }
   }
