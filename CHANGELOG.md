@@ -50,6 +50,8 @@ All notable Bogos changes made so far are summarized here.
 - Added bounded autoplay recommendation logic that avoids recent duplicates and obvious non-song results.
 - Added `/lyrics` for current-song lyrics and `/lyrics query:<song and artist>` for manual lyrics search.
 - Added LRCLIB lyrics lookup with plain-lyrics preference, synced-lyrics timestamp stripping, timeout handling, and Discord-length truncation.
+- Added compact paged `/queue` view with First/Previous/Next/Last buttons.
+- Added `/queue page:<number>`.
 
 ### Changed
 
@@ -66,6 +68,7 @@ All notable Bogos changes made so far are summarized here.
 - Changed skip behavior so admins and DJs skip directly while other users vote.
 - Changed `/queue` to include an optional `action` choice while preserving the default queue display behavior.
 - Changed `/autoplay` from a passive flag into active end-of-queue recommendation behavior.
+- Changed `/queue` default behavior to show a compact queue embed instead of refreshing Now Playing.
 - Changed `.gitignore` to ignore `logs/` and `*.log`.
 - Removed project planning Markdown files from Git tracking while keeping them local and ignored.
 - Removed Markdown file buttons from the launcher panel.
@@ -102,6 +105,8 @@ All notable Bogos changes made so far are summarized here.
 - Confirmed live autoplay test adds and plays a related song when the queue ends.
 - Confirmed local LRCLIB lookup finds lyrics for a known test query.
 - Confirmed live Discord `/lyrics` test passes.
+- Confirmed `npm run check` passes after queue UI improvements.
+- Confirmed live Discord `/queue` pagination test passes.
 - Confirmed `npm run check` passes after each completed phase.
 
 ### Known Issues

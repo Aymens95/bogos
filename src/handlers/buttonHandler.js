@@ -2,6 +2,7 @@ const { requireSameVoiceChannel } = require("../utils/voiceChecks");
 const Favorites = require("../music/Favorites");
 const { LOOP_MODES } = require("../utils/constants");
 const VoteSkip = require("../music/VoteSkip");
+const { buildQueuePayload } = require("../utils/embedBuilder");
 const { canUseDjControl } = require("../utils/permissions");
 const { requestSkip } = require("../utils/skipControl");
 
@@ -18,6 +19,21 @@ async function handleButton(interaction, client) {
     await interaction.deferUpdate();
     const page = Number(interaction.customId.split(":")[2]);
     await client.player.updateNowPlaying(interaction.guildId, page);
+    return;
+  }
+
+  if (interaction.customId.startsWith("queue_view:")) {
+    const [, action, currentPageValue] = interaction.customId.split(":");
+    const currentPage = Number(currentPageValue) || 1;
+    const totalPages = queue.getTotalPages();
+    const nextPage = {
+      first: 1,
+      prev: Math.max(1, currentPage - 1),
+      next: Math.min(totalPages, currentPage + 1),
+      last: totalPages
+    }[action] || currentPage;
+
+    await interaction.update(buildQueuePayload(queue, nextPage));
     return;
   }
 

@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require("discord.js");
+const { buildQueuePayload } = require("../../utils/embedBuilder");
 const { requireVoiceChannel } = require("../../utils/voiceChecks");
 
 module.exports = {
@@ -11,7 +12,11 @@ module.exports = {
       .addChoices(
         { name: "Show", value: "show" },
         { name: "Restore saved queue", value: "restore" }
-      )),
+      ))
+    .addIntegerOption((option) => option
+      .setName("page")
+      .setDescription("Queue page to show")
+      .setMinValue(1)),
   async execute(interaction, client) {
     await interaction.deferReply({ flags: 64 });
 
@@ -41,7 +46,7 @@ module.exports = {
 
     const queue = client.player.getQueue(interaction.guildId);
     queue.textChannel = interaction.channel;
-    await client.player.updateNowPlaying(interaction.guildId);
-    await interaction.editReply(`Queue has ${queue.getAll().length} song(s).`);
+    const page = interaction.options.getInteger("page") || 1;
+    await interaction.editReply(buildQueuePayload(queue, page));
   }
 };

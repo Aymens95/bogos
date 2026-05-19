@@ -7,6 +7,16 @@ const {
 } = require("discord.js");
 const Equalizer = require("../music/Equalizer");
 const Favorites = require("../music/Favorites");
+const { formatDuration } = require("./formatDuration");
+
+function getQueueTotalDuration(queue) {
+  const seconds = queue.getAll().reduce((total, song) => {
+    const duration = Number(song.duration || 0);
+    return Number.isFinite(duration) && duration > 0 ? total + duration : total;
+  }, 0);
+
+  return seconds > 0 ? formatDuration(seconds) : "Unknown";
+}
 
 function buildNowPlayingPayload(queue, disabled = false, page = 1, guildId = null, userId = null) {
   const song = queue.getCurrent();
@@ -158,8 +168,62 @@ function buildSearchResultsPayload({ query, candidates, userId }) {
   };
 }
 
+function buildQueuePayload(queue, page = 1) {
+  const totalPages = queue.getTotalPages();
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const current = queue.getCurrent();
+  const items = queue.getPage(safePage);
+  const lines = items.map((item) => {
+    const marker = item.position - 1 === queue.currentIndex ? "▶" : `${item.position}.`;
+    const duration = item.unresolved ? "pending" : item.durationFormatted || "0:00";
+    return `${marker} **${item.title || "Unknown title"}** - ${item.artist || "Unknown"} (${duration})`;
+  });
+
+  const embed = new EmbedBuilder()
+    .setColor(0x5865f2)
+    .setTitle("Queue")
+    .setDescription(lines.join("\n").slice(0, 4000) || "Queue is empty.")
+    .addFields(
+      { name: "Songs", value: String(queue.songs.length), inline: true },
+      { name: "Page", value: `${safePage}/${totalPages}`, inline: true },
+      { name: "Total duration", value: getQueueTotalDuration(queue), inline: true },
+      { name: "Current", value: current?.title?.slice(0, 1024) || "Nothing playing", inline: false }
+    )
+    .setFooter({ text: `Loop: ${queue.loopMode} • Volume: ${queue.volume}% • Autoplay: ${queue.autoplay ? "on" : "off"}` })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`queue_view:first:${safePage}`)
+      .setLabel("First")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(safePage <= 1),
+    new ButtonBuilder()
+      .setCustomId(`queue_view:prev:${safePage}`)
+      .setEmoji("◀")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(safePage <= 1),
+    new ButtonBuilder()
+      .setCustomId(`queue_view:next:${safePage}`)
+      .setEmoji("▶")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(safePage >= totalPages),
+    new ButtonBuilder()
+      .setCustomId(`queue_view:last:${safePage}`)
+      .setLabel("Last")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(safePage >= totalPages)
+  );
+
+  return {
+    embeds: [embed],
+    components: queue.songs.length ? [row] : []
+  };
+}
+
 module.exports = {
   buildAddedToQueueEmbed,
   buildNowPlayingPayload,
+  buildQueuePayload,
   buildSearchResultsPayload
 };

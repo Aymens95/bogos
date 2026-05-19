@@ -19,7 +19,8 @@
 
 ## Queue
 
-- `/queue` - Show the queue.
+- `/queue` - Show a compact paged queue view.
+- `/queue page:<number>` - Show a specific queue page.
 - `/queue action:restore` - Restore the saved queue and start playback from voice.
 - `/remove position:<number>` - Remove a song by queue position.
 - `/clear` - Clear the queue.
