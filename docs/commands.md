@@ -42,9 +42,9 @@
 
 - `/help` - List available commands.
 - `/ping` - Show bot latency.
+- `/status` - Show bot, voice, queue, and runtime diagnostics.
 - `/invite` - Show the bot invite URL.
 
 ## Buttons
 
 The Now Playing embed includes controls for shuffle, previous, pause/resume, skip, loop, remove, rewind, stop, forward, and favorite.
-

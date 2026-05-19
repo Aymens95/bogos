@@ -38,6 +38,8 @@ All notable Bogos changes made so far are summarized here.
 - Added requester-only protection for search result selection.
 - Added fallback metadata enrichment for `/search` results when yt-dlp initially returns only video IDs.
 - Added filtering of unresolved `YouTube video - YouTube (0:00)` placeholder rows when real metadata results are available.
+- Added `/status` diagnostics for uptime, WebSocket ping, voice connection, playback state, queue, current song, loop mode, equalizer, volume, FFmpeg, yt-dlp, Node.js, and discord.js.
+- Added timeout-bound runtime diagnostics helper for external binary checks.
 
 ### Changed
 
@@ -76,6 +78,7 @@ All notable Bogos changes made so far are summarized here.
 - Confirmed YouTube playlist lazy loading queues quickly and plays correctly.
 - Confirmed `/search` returns usable results, queues the selected song, and plays correctly.
 - Confirmed `npm run deploy` registered 23 slash commands after adding `/search`.
+- Confirmed `npm run deploy` registered 24 slash commands after adding `/status`.
 - Confirmed `npm run check` passes after each completed phase.
 
 ### Known Issues
@@ -140,6 +143,7 @@ All notable Bogos changes made so far are summarized here.
 - Added utility commands:
   - `/help`
   - `/ping`
+  - `/status`
   - `/invite`
 - Added Now Playing buttons:
   - shuffle
