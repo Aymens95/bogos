@@ -19,3 +19,6 @@ for (const file of collectJavaScriptFiles(path.join(__dirname, "..", "src"))) {
   const result = spawnSync(process.execPath, ["--check", file], { stdio: "inherit" });
   if (result.status !== 0) process.exit(result.status || 1);
 }
+
+const matcherResult = spawnSync(process.execPath, [path.join(__dirname, "check-matcher.js")], { stdio: "inherit" });
+if (matcherResult.status !== 0) process.exit(matcherResult.status || 1);

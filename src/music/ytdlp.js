@@ -1,5 +1,6 @@
 const { spawn } = require("node:child_process");
 const { Readable } = require("node:stream");
+const { selectBestCandidate } = require("./matcher");
 
 function runYtdlp(args) {
   return new Promise((resolve, reject) => {
@@ -27,28 +28,86 @@ function runYtdlp(args) {
 }
 
 async function searchYouTube(query) {
-  const result = await runYtdlp([
-    "--default-search",
-    "ytsearch5",
-    "--flat-playlist",
-    "--get-id",
-    "--no-playlist",
-    query
-  ]);
+  const candidates = await getYouTubeCandidates(query);
 
-  const ids = result.split(/\r?\n/).filter(Boolean);
-
-  for (const id of ids) {
-    const url = `https://www.youtube.com/watch?v=${id}`;
+  for (const candidate of candidates) {
     try {
-      await getAudioUrl(url);
-      return url;
+      await getAudioUrl(candidate.url);
+      return candidate.url;
     } catch {
       // Try the next search result if this video is unavailable.
     }
   }
 
   return null;
+}
+
+async function searchYouTubeForTrack(track) {
+  const query = track.searchQuery || (
+    track.artist && track.artist !== "Unknown Artist"
+      ? `${track.title} ${track.artist}`
+      : track.title
+  );
+  const candidates = await getYouTubeCandidates(query);
+  const best = selectBestCandidate(track, candidates);
+  const ordered = [
+    best,
+    ...candidates.filter((candidate) => candidate.url !== best?.url)
+  ].filter(Boolean);
+
+  for (const candidate of ordered) {
+    try {
+      await getAudioUrl(candidate.url);
+      return candidate.url;
+    } catch {
+      // Try the next ranked result if this video is unavailable.
+    }
+  }
+
+  return null;
+}
+
+async function getYouTubeCandidates(query, limit = 5) {
+  try {
+    const result = await runYtdlp([
+      "--dump-json",
+      "--no-playlist",
+      `ytsearch${limit}:${query}`
+    ]);
+
+    return result
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => JSON.parse(line))
+      .map((entry) => ({
+        title: entry.title || "YouTube video",
+        artist: entry.uploader || entry.channel || "YouTube",
+        duration: Number(entry.duration || 0),
+        url: entry.webpage_url || entry.original_url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : null)
+      }))
+      .filter((candidate) => candidate.url);
+  } catch {
+    // Fall back to the old flat ID path if metadata search fails.
+  }
+
+  const result = await runYtdlp([
+    "--default-search",
+    `ytsearch${limit}`,
+    "--flat-playlist",
+    "--get-id",
+    "--no-playlist",
+    query
+  ]);
+
+  return result
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((id) => ({
+      title: "YouTube video",
+      artist: "YouTube",
+      duration: 0,
+      url: `https://www.youtube.com/watch?v=${id}`
+    }));
 }
 
 async function getAudioUrl(youtubeUrl) {
@@ -101,6 +160,8 @@ module.exports = {
   getAudioStream,
   getAudioUrl,
   getVideoInfo,
+  getYouTubeCandidates,
   getYouTubePlaylist,
-  searchYouTube
+  searchYouTube,
+  searchYouTubeForTrack
 };

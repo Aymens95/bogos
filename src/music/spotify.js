@@ -57,6 +57,43 @@ function premiumRequiredError(kind) {
   return error;
 }
 
+function parseOEmbedTitle(value) {
+  const raw = String(value || "").trim();
+  const withoutSpotify = raw
+    .replace(/\s*\|\s*Spotify\s*$/i, "")
+    .replace(/\s+on Spotify\s*$/i, "")
+    .trim();
+
+  const songAndLyrics = withoutSpotify.match(/^(.*?)\s*-\s*song and lyrics by\s*(.*?)$/i);
+  if (songAndLyrics) {
+    return {
+      title: songAndLyrics[1].trim(),
+      artist: songAndLyrics[2].trim()
+    };
+  }
+
+  const byArtist = withoutSpotify.match(/^(.*?)\s+by\s+(.*?)$/i);
+  if (byArtist) {
+    return {
+      title: byArtist[1].trim(),
+      artist: byArtist[2].trim()
+    };
+  }
+
+  const dash = withoutSpotify.match(/^(.*?)\s*[-–—]\s*(.*?)$/);
+  if (dash) {
+    return {
+      title: dash[1].trim(),
+      artist: dash[2].trim()
+    };
+  }
+
+  return {
+    title: withoutSpotify || "Spotify track",
+    artist: "Unknown Artist"
+  };
+}
+
 function toTrackMetadata(track) {
   const artists = track.artists?.map((artist) => artist.name).join(", ") || "Unknown Artist";
   const duration = Math.round((track.duration_ms || 0) / 1000);
@@ -83,15 +120,17 @@ async function getTrackMetadata(trackId) {
     const response = await axios.get("https://open.spotify.com/oembed", {
       params: { url: spotifyUrl }
     });
+    const parsed = parseOEmbedTitle(response.data.title);
 
     return {
-      title: response.data.title || "Spotify track",
-      artist: "Unknown Artist",
+      title: parsed.title,
+      artist: parsed.artist,
       album: null,
       duration: 0,
       durationFormatted: "0:00",
       albumArt: response.data.thumbnail_url || null,
-      source: "spotify"
+      source: "spotify",
+      lowConfidence: true
     };
   }
 }

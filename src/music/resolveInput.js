@@ -23,7 +23,7 @@ async function withYouTube(metadata, requestedBy) {
   const searchQuery = metadata.artist && metadata.artist !== "Unknown Artist"
     ? `${metadata.title} ${metadata.artist}`
     : metadata.title;
-  const youtubeUrl = metadata.youtubeUrl || await ytdlp.searchYouTube(searchQuery);
+  const youtubeUrl = metadata.youtubeUrl || await ytdlp.searchYouTubeForTrack({ ...metadata, searchQuery });
   if (!youtubeUrl) throw new Error("Could not find audio for this track.");
 
   return {
@@ -65,7 +65,7 @@ async function resolveSongYouTube(song) {
       ? `${song.title} ${song.artist}`
       : song.title
   );
-  const youtubeUrl = await ytdlp.searchYouTube(searchQuery);
+  const youtubeUrl = await ytdlp.searchYouTubeForTrack({ ...song, searchQuery });
   if (!youtubeUrl) throw new Error("Could not find audio for this track.");
 
   return {
