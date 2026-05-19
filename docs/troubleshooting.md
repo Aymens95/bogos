@@ -48,3 +48,21 @@ Forward and rewind restart FFmpeg and reopen the stream. Long videos can lag mor
 ## Interaction Errors
 
 Button and dropdown interactions must be acknowledged quickly. The current handlers defer before slow playback work. If `Unknown interaction` appears again, check any recently changed button/select handler.
+
+## Skip Starts A Vote
+
+If no DJ role is configured, `/skip` and the skip button use vote skip. If a DJ role is configured, users without that role also vote instead of skipping directly.
+
+A majority of non-bot users in the voice channel is required. Administrators and users with the configured DJ role skip directly.
+
+## Restore Queue After Restart
+
+Bogos saves each server queue under `data/queues/` as songs are added, moved, skipped, or removed.
+
+After a restart, join a voice channel and run `/queue action:restore` to reload the saved queue and start playback. Startup never auto-joins voice or auto-plays by itself.
+
+## Autoplay Stops
+
+Autoplay searches YouTube from the last song's artist or title and adds one related song when the queue ends.
+
+It skips obvious non-song results and stops after a bounded run of autoplay additions. If no usable result is found, Bogos reports that autoplay could not find another song and disconnects normally.

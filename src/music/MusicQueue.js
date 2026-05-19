@@ -7,6 +7,7 @@ class MusicQueue {
     this.history = [];
     this.loopMode = LOOP_MODES.OFF;
     this.autoplay = false;
+    this.autoplayCount = 0;
     this.volume = 50;
     this.nowPlayingMessage = null;
     this.textChannel = null;
@@ -14,10 +15,12 @@ class MusicQueue {
   }
 
   add(song) {
+    if (!song?.autoplay) this.autoplayCount = 0;
     this.songs.push(song);
   }
 
   addMany(songs) {
+    if (songs.some((song) => !song?.autoplay)) this.autoplayCount = 0;
     this.songs.push(...songs);
   }
 

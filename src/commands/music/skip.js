@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require("discord.js");
+const { requestSkip } = require("../../utils/skipControl");
 const { requireSameVoiceChannel } = require("../../utils/voiceChecks");
 
 module.exports = {
@@ -7,7 +8,7 @@ module.exports = {
     const check = requireSameVoiceChannel(interaction, client);
     if (!check.ok) return interaction.reply({ content: check.message, flags: 64 });
     await interaction.deferReply({ flags: 64 });
-    await client.player.skip(interaction.guildId);
-    await interaction.editReply("Skipped.");
+    const message = await requestSkip(interaction, client, check.voiceChannel);
+    await interaction.editReply(message);
   }
 };

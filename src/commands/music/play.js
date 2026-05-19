@@ -26,6 +26,7 @@ module.exports = {
     const wasEmpty = !queue.getCurrent();
 
     queue.addMany(result.songs);
+    client.player.saveQueue(interaction.guildId);
     const count = result.songs.length;
     await interaction.editReply(`${count === 1 ? "Queued" : `Queued ${count} songs`}${result.truncated ? " (first 100 only)" : ""}.`);
     await interaction.channel.send({

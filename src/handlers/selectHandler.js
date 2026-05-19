@@ -1,5 +1,6 @@
 const { requireSameVoiceChannel } = require("../utils/voiceChecks");
 const { formatDuration } = require("../utils/formatDuration");
+const VoteSkip = require("../music/VoteSkip");
 
 const SEARCH_TTL_MS = 10 * 60 * 1000;
 const pendingSearches = new Map();
@@ -47,6 +48,8 @@ async function handleQueueSelect(interaction, client) {
   }
 
   await interaction.deferUpdate();
+  VoteSkip.clear(interaction.guildId);
+  client.player.saveQueue(interaction.guildId);
   await client.player.playCurrent(interaction.guildId);
 }
 
@@ -101,6 +104,7 @@ async function handleSearchSelect(interaction, client) {
   const queue = client.player.getQueue(interaction.guildId);
   const wasEmpty = !queue.getCurrent();
   queue.add(song);
+  client.player.saveQueue(interaction.guildId);
 
   await interaction.editReply({
     content: `Queued **${song.title}**.`,

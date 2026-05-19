@@ -1,5 +1,6 @@
 const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
 const Equalizer = require("../../music/Equalizer");
+const { canUseDjControl } = require("../../utils/permissions");
 const { requireSameVoiceChannel } = require("../../utils/voiceChecks");
 
 module.exports = {
@@ -18,6 +19,12 @@ module.exports = {
     const check = requireSameVoiceChannel(interaction, client);
     if (!check.ok) {
       await interaction.reply({ content: check.message, flags: 64 });
+      return;
+    }
+
+    const permission = canUseDjControl(interaction);
+    if (!permission.ok) {
+      await interaction.reply({ content: permission.message, flags: 64 });
       return;
     }
 

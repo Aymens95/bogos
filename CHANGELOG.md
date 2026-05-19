@@ -40,6 +40,14 @@ All notable Bogos changes made so far are summarized here.
 - Added filtering of unresolved `YouTube video - YouTube (0:00)` placeholder rows when real metadata results are available.
 - Added `/status` diagnostics for uptime, WebSocket ping, voice connection, playback state, queue, current song, loop mode, equalizer, volume, FFmpeg, yt-dlp, Node.js, and discord.js.
 - Added timeout-bound runtime diagnostics helper for external binary checks.
+- Added `/settings view` and `/settings dj-role role:<role>` for server DJ role configuration.
+- Added persistent server settings under `data/settings/{guildId}.json`.
+- Added DJ role restrictions for stop, clear, shuffle, move, volume, equalizer, and matching Now Playing stop/shuffle buttons.
+- Added vote skip for `/skip` and the skip button when no DJ role is configured or the user lacks the DJ role.
+- Added queue persistence under `data/queues/{guildId}.json`.
+- Added `/queue action:restore` to restore a saved queue and start playback explicitly from voice.
+- Added real autoplay that queues one related YouTube song when the queue ends.
+- Added bounded autoplay recommendation logic that avoids recent duplicates and obvious non-song results.
 
 ### Changed
 
@@ -53,6 +61,9 @@ All notable Bogos changes made so far are summarized here.
 - Changed plain search internals to use candidate metadata while preserving the existing fast `/play` behavior.
 - Changed Spotify blocked playlist/album errors to return a clear user-facing Discord message.
 - Changed command error logging to avoid dumping full Axios objects and bearer tokens.
+- Changed skip behavior so admins and DJs skip directly while other users vote.
+- Changed `/queue` to include an optional `action` choice while preserving the default queue display behavior.
+- Changed `/autoplay` from a passive flag into active end-of-queue recommendation behavior.
 - Changed `.gitignore` to ignore `logs/` and `*.log`.
 - Removed project planning Markdown files from Git tracking while keeping them local and ignored.
 - Removed Markdown file buttons from the launcher panel.
@@ -79,6 +90,14 @@ All notable Bogos changes made so far are summarized here.
 - Confirmed `/search` returns usable results, queues the selected song, and plays correctly.
 - Confirmed `npm run deploy` registered 23 slash commands after adding `/search`.
 - Confirmed `npm run deploy` registered 24 slash commands after adding `/status`.
+- Confirmed `npm run deploy` registered 25 slash commands after adding `/settings`.
+- Confirmed `npm run deploy` registered 25 slash commands after updating `/queue`.
+- Confirmed `npm run check` passes after adding DJ role and vote skip code.
+- Confirmed `npm run check` passes after adding queue persistence.
+- Confirmed `npm run check` passes after adding real autoplay.
+- Confirmed local yt-dlp autoplay lookup returns a related candidate.
+- Confirmed live `/queue action:restore` test restores the saved queue.
+- Confirmed live autoplay test adds and plays a related song when the queue ends.
 - Confirmed `npm run check` passes after each completed phase.
 
 ### Known Issues

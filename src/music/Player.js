@@ -1,7 +1,10 @@
 const { createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, AudioPlayerStatus, VoiceConnectionStatus, StreamType } = require("@discordjs/voice");
 const { spawn } = require("node:child_process");
+const Autoplay = require("./Autoplay");
 const Equalizer = require("./Equalizer");
 const { MusicQueue } = require("./MusicQueue");
+const QueuePersistence = require("./QueuePersistence");
+const VoteSkip = require("./VoteSkip");
 const { resolveSongYouTube } = require("./resolveInput");
 const ytdlp = require("./ytdlp");
 const { LOOP_MODES } = require("../utils/constants");
@@ -51,8 +54,32 @@ class Player {
   }
 
   getQueue(guildId) {
-    if (!this.queues.has(guildId)) this.queues.set(guildId, new MusicQueue());
+    if (!this.queues.has(guildId)) {
+      const queue = new MusicQueue();
+      const state = QueuePersistence.load(guildId);
+      if (state.songs.length) QueuePersistence.applyState(queue, state);
+      this.queues.set(guildId, queue);
+    }
     return this.queues.get(guildId);
+  }
+
+  saveQueue(guildId) {
+    return QueuePersistence.save(guildId, this.getQueue(guildId));
+  }
+
+  clearSavedQueue(guildId) {
+    return QueuePersistence.clear(guildId);
+  }
+
+  restoreSavedQueue(guildId, textChannel = null) {
+    const state = QueuePersistence.load(guildId);
+    if (!state.songs.length) return { ok: false, count: 0 };
+
+    const queue = this.getQueue(guildId);
+    QueuePersistence.applyState(queue, state);
+    if (textChannel) queue.textChannel = textChannel;
+    this.saveQueue(guildId);
+    return { ok: true, count: state.songs.length };
   }
 
   getAudioPlayer(guildId) {
@@ -128,6 +155,7 @@ class Player {
         const resolved = await resolveSongYouTube(song);
         queue.songs[queue.currentIndex] = resolved;
         song = resolved;
+        this.saveQueue(guildId);
       }
 
       const audioUrl = await ytdlp.getAudioUrl(song.youtubeUrl);
@@ -178,10 +206,12 @@ class Player {
 
   async skipFailedCurrent(guildId, song, error) {
     const queue = this.getQueue(guildId);
+    VoteSkip.clear(guildId);
     const failedTitle = song?.title || "Unknown song";
     const failedIndex = queue.currentIndex;
     queue.songs.splice(failedIndex, 1);
     queue.currentIndex = failedIndex;
+    this.saveQueue(guildId);
 
     if (queue.textChannel) {
       await queue.textChannel.send(`⚠️ Skipped **${failedTitle}**: ${error.message}`).catch(() => {});
@@ -212,13 +242,40 @@ class Player {
 
   async handleSongEnd(guildId) {
     const queue = this.getQueue(guildId);
+    const previousIndex = queue.currentIndex;
     const nextIndex = queue.advance();
 
     if (nextIndex === null) {
+      VoteSkip.clear(guildId);
+      const autoplaySong = await Autoplay.getNextSong(queue).catch((error) => {
+        console.warn("Autoplay lookup failed:", error.message);
+        return null;
+      });
+
+      if (autoplaySong) {
+        queue.add(autoplaySong);
+        queue.currentIndex = queue.songs.length - 1;
+        this.saveQueue(guildId);
+
+        if (queue.textChannel) {
+          await queue.textChannel.send(`Autoplay added **${autoplaySong.title}**.`).catch(() => {});
+        }
+
+        await this.playCurrent(guildId);
+        return;
+      }
+
+      if (queue.autoplay && queue.textChannel) {
+        await queue.textChannel.send("Autoplay could not find another song.").catch(() => {});
+      }
+
+      this.clearSavedQueue(guildId);
       await this.startDisconnectTimer(guildId, "Queue ended.");
       return;
     }
 
+    if (nextIndex !== previousIndex) VoteSkip.clear(guildId);
+    this.saveQueue(guildId);
     await this.playCurrent(guildId);
   }
 
@@ -239,27 +296,34 @@ class Player {
 
   async skip(guildId) {
     const queue = this.getQueue(guildId);
+    VoteSkip.clear(guildId);
     if (queue.advance() === null) {
+      this.clearSavedQueue(guildId);
       await this.startDisconnectTimer(guildId, "Queue ended.");
       return;
     }
+    this.saveQueue(guildId);
     await this.playCurrent(guildId);
   }
 
   async previous(guildId) {
     const queue = this.getQueue(guildId);
+    VoteSkip.clear(guildId);
     const previous = queue.history.pop();
     if (!previous) return false;
 
     queue.songs.splice(queue.currentIndex, 0, previous);
     queue.currentIndex = queue.songs.indexOf(previous);
+    this.saveQueue(guildId);
     await this.playCurrent(guildId);
     return true;
   }
 
   async stop(guildId) {
     const queue = this.getQueue(guildId);
+    VoteSkip.clear(guildId);
     queue.clear();
+    this.clearSavedQueue(guildId);
     this.getAudioPlayer(guildId).stop(true);
     await this.startDisconnectTimer(guildId, "Playback stopped.");
   }
@@ -267,6 +331,7 @@ class Player {
   setVolume(guildId, level) {
     const queue = this.getQueue(guildId);
     queue.volume = Math.max(1, Math.min(100, level));
+    this.saveQueue(guildId);
     const elapsed = queue.startedAt ? Math.floor((Date.now() - queue.startedAt) / 1000) : 0;
     return this.playCurrent(guildId, (queue.seekOffset || 0) + elapsed);
   }
@@ -291,12 +356,14 @@ class Player {
   setLoop(guildId, mode) {
     const queue = this.getQueue(guildId);
     queue.loopMode = Object.values(LOOP_MODES).includes(mode) ? mode : LOOP_MODES.OFF;
+    this.saveQueue(guildId);
     return this.updateNowPlaying(guildId);
   }
 
   toggleAutoplay(guildId) {
     const queue = this.getQueue(guildId);
     queue.autoplay = !queue.autoplay;
+    this.saveQueue(guildId);
     return this.updateNowPlaying(guildId);
   }
 
@@ -327,6 +394,7 @@ class Player {
   async disconnect(guildId) {
     const queue = this.getQueue(guildId);
     clearDisconnectTimer(guildId);
+    VoteSkip.clear(guildId);
 
     const player = this.players.get(guildId);
     player?.stop(true);

@@ -83,6 +83,7 @@ async function getYouTubeCandidates(query, limit = 5) {
         title: entry.title || "YouTube video",
         artist: entry.uploader || entry.channel || "YouTube",
         duration: Number(entry.duration || 0),
+        thumbnail: entry.thumbnail || null,
         url: entry.webpage_url || entry.original_url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : null)
       }))
       .filter((candidate) => candidate.url);

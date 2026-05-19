@@ -12,6 +12,7 @@ module.exports = {
     await interaction.deferReply({ flags: 64 });
     const queue = client.player.getQueue(interaction.guildId);
     const removed = queue.remove(interaction.options.getInteger("position", true) - 1);
+    if (removed) client.player.saveQueue(interaction.guildId);
     await client.player.updateNowPlaying(interaction.guildId).catch(() => {});
     await interaction.editReply(removed ? `Removed ${removed.title}.` : "No song at that position.");
   }

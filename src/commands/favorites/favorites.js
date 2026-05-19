@@ -83,6 +83,7 @@ module.exports = {
 
       const wasEmpty = !queue.getCurrent();
       queue.addMany(toQueue);
+      client.player.saveQueue(interaction.guildId);
       if (wasEmpty) await client.player.play(interaction.guildId, check.voiceChannel, interaction.channel);
       else await client.player.updateNowPlaying(interaction.guildId).catch(() => {});
 

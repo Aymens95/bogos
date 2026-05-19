@@ -12,12 +12,13 @@
 - `/loop mode:<off|song|queue>` - Set loop mode.
 - `/volume level:<1-100>` - Set playback volume.
 - `/seek timestamp:<MM:SS>` - Seek to a timestamp.
-- `/autoplay` - Toggle autoplay state.
+- `/autoplay` - Toggle autoplay. When enabled, Bogos adds a related YouTube song when the queue ends.
 - `/equalizer filter:<filter>` - Apply an FFmpeg audio filter.
 
 ## Queue
 
 - `/queue` - Show the queue.
+- `/queue action:restore` - Restore the saved queue and start playback from voice.
 - `/remove position:<number>` - Remove a song by queue position.
 - `/clear` - Clear the queue.
 - `/shuffle` - Shuffle upcoming songs while keeping the current song first.
@@ -43,7 +44,15 @@
 - `/help` - List available commands.
 - `/ping` - Show bot latency.
 - `/status` - Show bot, voice, queue, and runtime diagnostics.
+- `/settings view` - Show current server settings.
+- `/settings dj-role role:<role>` - Set the DJ role. Omit `role` to clear it.
 - `/invite` - Show the bot invite URL.
+
+## DJ Role And Vote Skip
+
+When a DJ role is configured, `/stop`, `/clear`, `/shuffle`, `/move`, `/volume`, `/equalizer`, and matching Now Playing controls require that role. Administrators always bypass this restriction.
+
+`/skip` and the skip button use vote skip for users without the DJ role, and also when no DJ role is configured. A majority of non-bot users in the voice channel skips the current song.
 
 ## Buttons
 
