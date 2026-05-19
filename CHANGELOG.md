@@ -130,6 +130,8 @@ All notable Bogos changes made so far are summarized here.
 - Confirmed logger file-output/redaction smoke test passes.
 - Confirmed live restart/log smoke test passes.
 - Confirmed Spotify public embed fallback smoke tests for playlist and album metadata.
+- Confirmed local Spotify/YouTube matcher probes select expected candidates for representative ambiguous tracks.
+- Added matcher regression assertions for duration-sensitive official-audio selection and scene-style false positives.
 - Confirmed `npm run check` passes after each completed phase.
 
 ### Known Issues
