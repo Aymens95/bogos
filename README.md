@@ -12,7 +12,7 @@ Node.js Discord music bot that plays YouTube audio, resolves Spotify metadata, s
 npm install
 ```
 
-4. Copy `.env.example` to `.env` and fill in Discord and Spotify credentials.
+4. Copy `.env.example` to `.env` and fill in Discord credentials. Spotify credentials are optional.
 5. Register slash commands:
 
 ```bash
@@ -27,7 +27,7 @@ npm start
 
 ## Notes
 
-- Spotify links are used for metadata, then resolved to YouTube audio.
+- Spotify links are used for metadata, then resolved to YouTube audio. Spotify API credentials are optional; public metadata fallbacks are used when credentials are missing or blocked.
 - Playlist and album imports are capped at 100 tracks.
 - The bot keeps queue/player state isolated per guild.
 - See [CHANGELOG.md](CHANGELOG.md) for completed features, fixes, and known limitations.

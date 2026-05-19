@@ -45,15 +45,17 @@ Spotify support is best-effort.
 
 Known behavior:
 
-- Spotify track links may use a fallback if Spotify Web API access is restricted.
+- Spotify credentials are optional.
+- Spotify track links use Web API metadata when keys are configured, otherwise public oEmbed fallback.
 - The fallback can choose the wrong YouTube video.
-- Spotify playlists and albums need Spotify Web API access.
+- Spotify playlists and albums use the Web API first when keys are configured, then fall back to public Spotify embed rows if keys are missing or the API is blocked.
+- Embed fallback metadata is lower confidence and may expose fewer tracks than the full Spotify app.
 
 Use direct YouTube links when accuracy matters.
 
 ## Large Playlists Take Time
 
-YouTube playlists queue with lightweight metadata first, then resolve audio as each song starts. Spotify playlists and albums still depend on Spotify Web API access.
+YouTube playlists queue with lightweight metadata first, then resolve audio as each song starts. Spotify playlists and albums also queue lightweight metadata first when Web API or public embed metadata is available.
 
 ## Long Video Seeking Lags
 

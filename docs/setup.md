@@ -25,11 +25,13 @@ Copy `.env.example` to `.env` and fill in:
 ```env
 DISCORD_TOKEN=your_discord_bot_token
 DISCORD_CLIENT_ID=your_discord_application_id
-SPOTIFY_CLIENT_ID=your_spotify_client_id
-SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
 ```
 
-Spotify is only used for metadata. YouTube links and text search are the most reliable playback paths.
+Spotify credentials are optional. If they are present, Bogos tries the Spotify Web API first. If they are missing or the API is blocked, Bogos uses public Spotify oEmbed/embed metadata fallback paths.
+
+Spotify is only used for metadata. YouTube links and text search remain the most reliable playback paths.
 
 ## Install
 

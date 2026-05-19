@@ -59,6 +59,8 @@ All notable Bogos changes made so far are summarized here.
 - Added structured logger utility with optional `BOGOS_LOG_FILE` file output and `BOGOS_DEBUG=1` debug logging.
 - Added startup dependency checks for Node.js, FFmpeg, and yt-dlp.
 - Added command timing logs.
+- Added Spotify playlist/album public embed fallback for cases where Spotify Web API metadata is blocked.
+- Added no-key Spotify mode that uses public oEmbed/embed metadata when Spotify API credentials are missing.
 
 ### Changed
 
@@ -71,6 +73,8 @@ All notable Bogos changes made so far are summarized here.
 - Changed `Player.playCurrent()` to resolve missing YouTube URLs right before playback.
 - Changed plain search internals to use candidate metadata while preserving the existing fast `/play` behavior.
 - Changed Spotify blocked playlist/album errors to return a clear user-facing Discord message.
+- Changed Spotify playlist/album handling to try public embed track rows before failing when the Web API is premium-blocked.
+- Changed Spotify credentials from required-for-Spotify-links to optional API enhancement.
 - Changed command error logging to avoid dumping full Axios objects and bearer tokens.
 - Changed skip behavior so admins and DJs skip directly while other users vote.
 - Changed `/queue` to include an optional `action` choice while preserving the default queue display behavior.
@@ -125,15 +129,16 @@ All notable Bogos changes made so far are summarized here.
 - Confirmed `npm run check` passes after health and maintenance logging changes.
 - Confirmed logger file-output/redaction smoke test passes.
 - Confirmed live restart/log smoke test passes.
+- Confirmed Spotify public embed fallback smoke tests for playlist and album metadata.
 - Confirmed `npm run check` passes after each completed phase.
 
 ### Known Issues
 
-- Spotify playlist/album support is currently blocked by Spotify Web API access:
+- Spotify playlist/album Web API access may be blocked:
   - `403 Active premium subscription required for the owner of the app`
 - Spotify track fallback still depends on weaker oEmbed metadata when Spotify blocks full track metadata.
 - Spotify fallback matching is improved, but wrong YouTube matches can still happen when source metadata is weak.
-- Spotify playlist lazy loading needs to be revisited after Spotify API access is fixed or a fallback strategy is chosen.
+- Spotify playlist/album public embed fallback is lower confidence and may expose fewer tracks than the full Spotify app.
 - Long YouTube videos can lag when using rewind/forward because seeking restarts FFmpeg and reopens the stream.
 - Equalizer changes restart the current song from the beginning.
 

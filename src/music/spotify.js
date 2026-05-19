@@ -1,5 +1,6 @@
 const axios = require("axios");
 const { formatDuration } = require("../utils/formatDuration");
+const logger = require("../utils/logger");
 
 let tokenCache = {
   token: null,
@@ -13,7 +14,9 @@ async function getAccessToken() {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    throw new Error("Spotify credentials are required for Spotify links.");
+    const error = new Error("Spotify credentials are not configured.");
+    error.code = "SPOTIFY_CREDENTIALS_MISSING";
+    throw error;
   }
 
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
@@ -51,10 +54,91 @@ function isPremiumRequiredError(error) {
   return error.response?.status === 403 && message.includes("Active premium subscription required");
 }
 
-function premiumRequiredError(kind) {
-  const error = new Error(`Spotify ${kind} metadata is blocked by Spotify for this app. Try a YouTube link or text search instead.`);
-  error.publicMessage = `Spotify ${kind} links are currently blocked by Spotify for this app. Try a YouTube link or text search instead.`;
+function hasCredentials() {
+  return Boolean(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET);
+}
+
+function isMissingCredentialsError(error) {
+  return error?.code === "SPOTIFY_CREDENTIALS_MISSING";
+}
+
+function spotifyCollectionUnavailableError(kind) {
+  const error = new Error(`Spotify ${kind} metadata is unavailable. Try a YouTube link or text search instead.`);
+  error.publicMessage = `Spotify ${kind} links are currently unavailable. Try a YouTube link or text search instead.`;
   return error;
+}
+
+function decodeHtml(value) {
+  return String(value || "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#x27;|&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\u00a0/g, " ")
+    .trim();
+}
+
+function stripTags(value) {
+  return decodeHtml(String(value || "").replace(/<[^>]*>/g, ""));
+}
+
+function parseDuration(value) {
+  const parts = String(value || "").split(":").map((part) => Number(part));
+  if (parts.length === 2 && parts.every(Number.isInteger)) return parts[0] * 60 + parts[1];
+  if (parts.length === 3 && parts.every(Number.isInteger)) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return 0;
+}
+
+function parseEmbedTracks(html, albumArt = null) {
+  const rows = [...String(html || "").matchAll(/<li\b[^>]*data-testid="tracklist-row-\d+"[\s\S]*?<\/li>/g)];
+  return rows.slice(0, 100).map((row) => {
+    const chunk = row[0];
+    const title = stripTags(chunk.match(/<h3\b[^>]*>([\s\S]*?)<\/h3>/)?.[1]);
+    const artist = stripTags(chunk.match(/<h4\b[^>]*>([\s\S]*?)<\/h4>/)?.[1]).replace(/^E\s+/, "").trim() || "Unknown Artist";
+    const durationText = stripTags(chunk.match(/data-testid="duration-cell"[^>]*>([\s\S]*?)<\/div>/)?.[1]);
+    const duration = parseDuration(durationText);
+
+    if (!title) return null;
+
+    return {
+      title,
+      artist,
+      album: null,
+      duration,
+      durationFormatted: duration ? formatDuration(duration) : "0:00",
+      albumArt,
+      source: "spotify",
+      lowConfidence: true
+    };
+  }).filter(Boolean);
+}
+
+async function getOEmbed(url) {
+  const response = await axios.get("https://open.spotify.com/oembed", {
+    params: { url }
+  });
+  return response.data;
+}
+
+async function getCollectionViaEmbed(kind, id) {
+  const spotifyUrl = `https://open.spotify.com/${kind}/${id}`;
+  const oembed = await getOEmbed(spotifyUrl);
+  const embedUrl = oembed.iframe_url || `https://open.spotify.com/embed/${kind}/${id}`;
+  const response = await axios.get(embedUrl);
+  const tracks = parseEmbedTracks(response.data, oembed.thumbnail_url || null);
+
+  if (!tracks.length) throw spotifyCollectionUnavailableError(kind);
+
+  logger.warn("Using Spotify embed fallback", { kind, id, tracks: tracks.length });
+  return {
+    name: oembed.title || `Spotify ${kind}`,
+    total: tracks.length,
+    tracks,
+    lowConfidence: true,
+    fallback: "embed"
+  };
 }
 
 function parseOEmbedTitle(value) {
@@ -110,32 +194,42 @@ function toTrackMetadata(track) {
 }
 
 async function getTrackMetadata(trackId) {
+  const spotifyUrl = `https://open.spotify.com/track/${trackId}`;
+
+  if (!hasCredentials()) {
+    return getTrackViaOEmbed(spotifyUrl);
+  }
+
   try {
     const track = await spotifyGet(`/tracks/${trackId}`);
     return toTrackMetadata(track);
   } catch (error) {
-    if (!isPremiumRequiredError(error)) throw error;
-
-    const spotifyUrl = `https://open.spotify.com/track/${trackId}`;
-    const response = await axios.get("https://open.spotify.com/oembed", {
-      params: { url: spotifyUrl }
-    });
-    const parsed = parseOEmbedTitle(response.data.title);
-
-    return {
-      title: parsed.title,
-      artist: parsed.artist,
-      album: null,
-      duration: 0,
-      durationFormatted: "0:00",
-      albumArt: response.data.thumbnail_url || null,
-      source: "spotify",
-      lowConfidence: true
-    };
+    if (isPremiumRequiredError(error) || isMissingCredentialsError(error)) return getTrackViaOEmbed(spotifyUrl);
+    throw error;
   }
 }
 
+async function getTrackViaOEmbed(spotifyUrl) {
+  const response = { data: await getOEmbed(spotifyUrl) };
+  const parsed = parseOEmbedTitle(response.data.title);
+
+  return {
+    title: parsed.title,
+    artist: parsed.artist,
+    album: null,
+    duration: 0,
+    durationFormatted: "0:00",
+    albumArt: response.data.thumbnail_url || null,
+    source: "spotify",
+    lowConfidence: true
+  };
+}
+
 async function getPlaylistTracks(playlistId) {
+  if (!hasCredentials()) {
+    return getCollectionViaEmbed("playlist", playlistId);
+  }
+
   let data;
   try {
     data = await spotifyGet(`/playlists/${playlistId}`, {
@@ -143,7 +237,7 @@ async function getPlaylistTracks(playlistId) {
       limit: 100
     });
   } catch (error) {
-    if (isPremiumRequiredError(error)) throw premiumRequiredError("playlist");
+    if (isPremiumRequiredError(error) || isMissingCredentialsError(error)) return getCollectionViaEmbed("playlist", playlistId);
     throw error;
   }
 
@@ -160,11 +254,15 @@ async function getPlaylistTracks(playlistId) {
 }
 
 async function getAlbumTracks(albumId) {
+  if (!hasCredentials()) {
+    return getCollectionViaEmbed("album", albumId);
+  }
+
   let album;
   try {
     album = await spotifyGet(`/albums/${albumId}`);
   } catch (error) {
-    if (isPremiumRequiredError(error)) throw premiumRequiredError("album");
+    if (isPremiumRequiredError(error) || isMissingCredentialsError(error)) return getCollectionViaEmbed("album", albumId);
     throw error;
   }
 
@@ -184,6 +282,8 @@ async function getAlbumTracks(albumId) {
 }
 
 async function searchTrack(query) {
+  if (!hasCredentials()) return null;
+
   const data = await spotifyGet("/search", { q: query, type: "track", limit: 1 });
   const track = data.tracks.items[0];
   return track ? toTrackMetadata(track) : null;
@@ -191,6 +291,7 @@ async function searchTrack(query) {
 
 module.exports = {
   getAlbumTracks,
+  getCollectionViaEmbed,
   getPlaylistTracks,
   getTrackMetadata,
   searchTrack
