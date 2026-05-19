@@ -1,5 +1,7 @@
 const { requireSameVoiceChannel } = require("../utils/voiceChecks");
 const { formatDuration } = require("../utils/formatDuration");
+const { getQueueRoom } = require("../utils/queueLimits");
+const { getPreferredTextChannel } = require("../utils/textChannel");
 const VoteSkip = require("../music/VoteSkip");
 
 const SEARCH_TTL_MS = 10 * 60 * 1000;
@@ -102,6 +104,16 @@ async function handleSearchSelect(interaction, client) {
   };
 
   const queue = client.player.getQueue(interaction.guildId);
+  const { maxQueueSize, room } = getQueueRoom(interaction.guildId, queue);
+  if (room <= 0) {
+    await interaction.editReply({
+      content: `Queue is already at this server's ${maxQueueSize} song limit.`,
+      embeds: [],
+      components: []
+    });
+    return;
+  }
+
   const wasEmpty = !queue.getCurrent();
   queue.add(song);
   client.player.saveQueue(interaction.guildId);
@@ -113,7 +125,7 @@ async function handleSearchSelect(interaction, client) {
   });
 
   if (wasEmpty) {
-    await client.player.play(interaction.guildId, voiceCheck.voiceChannel, interaction.channel);
+    await client.player.play(interaction.guildId, voiceCheck.voiceChannel, getPreferredTextChannel(interaction));
   } else {
     client.player.cancelDisconnectTimer(interaction.guildId);
     await client.player.updateNowPlaying(interaction.guildId).catch(() => {});

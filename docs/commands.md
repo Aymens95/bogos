@@ -51,6 +51,9 @@
 - `/status` - Show bot, voice, queue, and runtime diagnostics.
 - `/settings view` - Show current server settings.
 - `/settings dj-role role:<role>` - Set the DJ role. Omit `role` to clear it.
+- `/settings defaults volume:<1-100> loop:<off|song|queue> autoplay:<true|false>` - Set defaults for new queues.
+- `/settings max-queue size:<1-200>` - Set the server queue size limit.
+- `/settings text-channel channel:<channel>` - Set the preferred channel for bot playback messages. Omit `channel` to clear it.
 - `/invite` - Show the bot invite URL.
 
 ## DJ Role And Vote Skip

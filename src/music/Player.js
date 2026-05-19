@@ -11,6 +11,7 @@ const ytdlp = require("./ytdlp");
 const { LOOP_MODES } = require("../utils/constants");
 const { setDisconnectTimer, clearDisconnectTimer } = require("../utils/disconnectTimer");
 const { buildNowPlayingPayload } = require("../utils/embedBuilder");
+const { getSettings } = require("../utils/serverSettings");
 
 async function safeDeleteMessage(message) {
   if (!message) return;
@@ -59,10 +60,21 @@ class Player {
     if (!this.queues.has(guildId)) {
       const queue = new MusicQueue();
       const state = QueuePersistence.load(guildId);
-      if (state.songs.length) QueuePersistence.applyState(queue, state);
+      if (state.songs.length) {
+        QueuePersistence.applyState(queue, state);
+      } else {
+        this.applyServerDefaults(guildId, queue);
+      }
       this.queues.set(guildId, queue);
     }
     return this.queues.get(guildId);
+  }
+
+  applyServerDefaults(guildId, queue) {
+    const settings = getSettings(guildId);
+    queue.volume = settings.defaultVolume;
+    queue.loopMode = settings.defaultLoopMode;
+    queue.autoplay = settings.autoplayDefault;
   }
 
   saveQueue(guildId) {
@@ -79,6 +91,7 @@ class Player {
 
     const queue = this.getQueue(guildId);
     QueuePersistence.applyState(queue, state);
+    if (!queue.songs.length) this.applyServerDefaults(guildId, queue);
     if (textChannel) queue.textChannel = textChannel;
     this.saveQueue(guildId);
     return { ok: true, count: state.songs.length };

@@ -34,3 +34,9 @@ Bogos can delete its own Now Playing and disconnect notification messages withou
 Use `/settings dj-role role:<role>` to configure the role allowed to use DJ controls. Use `/settings dj-role` without a role to clear it.
 
 Changing server settings requires `Manage Server` or `Administrator`. Administrators always bypass DJ control restrictions.
+
+Other server settings:
+
+- `/settings defaults` controls default volume, loop mode, and autoplay for new queues.
+- `/settings max-queue` controls how many songs can be queued.
+- `/settings text-channel` controls the preferred text channel for playback messages.

@@ -1,5 +1,7 @@
 const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
 const PlaybackHistory = require("../../music/PlaybackHistory");
+const { getQueueRoom } = require("../../utils/queueLimits");
+const { getPreferredTextChannel } = require("../../utils/textChannel");
 const { requireVoiceChannel } = require("../../utils/voiceChecks");
 
 function buildHistoryEmbed(history) {
@@ -57,6 +59,12 @@ module.exports = {
     }
 
     const queue = client.player.getQueue(interaction.guildId);
+    const { maxQueueSize, room } = getQueueRoom(interaction.guildId, queue);
+    if (room <= 0) {
+      await interaction.editReply(`Queue is already at this server's ${maxQueueSize} song limit.`);
+      return;
+    }
+
     const wasEmpty = !queue.getCurrent();
     const queued = {
       ...PlaybackHistory.cleanSong(song),
@@ -67,7 +75,7 @@ module.exports = {
     client.player.saveQueue(interaction.guildId);
 
     if (wasEmpty) {
-      await client.player.play(interaction.guildId, check.voiceChannel, interaction.channel);
+      await client.player.play(interaction.guildId, check.voiceChannel, getPreferredTextChannel(interaction));
     } else {
       client.player.cancelDisconnectTimer(interaction.guildId);
       await client.player.updateNowPlaying(interaction.guildId).catch(() => {});

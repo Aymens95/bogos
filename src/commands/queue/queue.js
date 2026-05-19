@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { buildQueuePayload } = require("../../utils/embedBuilder");
+const { getPreferredTextChannel } = require("../../utils/textChannel");
 const { requireVoiceChannel } = require("../../utils/voiceChecks");
 
 module.exports = {
@@ -33,19 +34,20 @@ module.exports = {
         return;
       }
 
-      const result = client.player.restoreSavedQueue(interaction.guildId, interaction.channel);
+      const textChannel = getPreferredTextChannel(interaction);
+      const result = client.player.restoreSavedQueue(interaction.guildId, textChannel);
       if (!result.ok) {
         await interaction.editReply("No saved queue found.");
         return;
       }
 
-      await client.player.play(interaction.guildId, check.voiceChannel, interaction.channel);
+      await client.player.play(interaction.guildId, check.voiceChannel, textChannel);
       await interaction.editReply(`Restored ${result.count} song(s) and started playback.`);
       return;
     }
 
     const queue = client.player.getQueue(interaction.guildId);
-    queue.textChannel = interaction.channel;
+    queue.textChannel = getPreferredTextChannel(interaction);
     const page = interaction.options.getInteger("page") || 1;
     await interaction.editReply(buildQueuePayload(queue, page));
   }

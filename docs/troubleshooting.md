@@ -78,3 +78,9 @@ Some songs may not be available, and long lyrics are truncated to fit Discord em
 Playback history starts recording when a song starts playing. It stores the 50 most recent songs per server under `data/history/`.
 
 Run `/history list` after playing at least one song. Use `/history play position:<number>` from voice to queue an entry again.
+
+## Queue Limit Or Wrong Text Channel
+
+Server admins can run `/settings view` to check the queue limit and preferred text channel.
+
+Use `/settings max-queue size:<1-200>` to change the queue cap. Use `/settings text-channel channel:<channel>` to route playback messages to a specific text channel, or omit `channel` to clear it.

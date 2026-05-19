@@ -54,6 +54,8 @@ All notable Bogos changes made so far are summarized here.
 - Added `/queue page:<number>`.
 - Added persistent per-server playback history under `data/history/{guildId}.json`.
 - Added `/history list` and `/history play position:<number>`.
+- Added per-server default volume, loop mode, autoplay, max queue size, and preferred text channel settings.
+- Added `/settings defaults`, `/settings max-queue`, and `/settings text-channel`.
 
 ### Changed
 
@@ -71,6 +73,8 @@ All notable Bogos changes made so far are summarized here.
 - Changed `/queue` to include an optional `action` choice while preserving the default queue display behavior.
 - Changed `/autoplay` from a passive flag into active end-of-queue recommendation behavior.
 - Changed `/queue` default behavior to show a compact queue embed instead of refreshing Now Playing.
+- Changed queue-add commands to enforce the server max queue size setting.
+- Changed playback-starting commands to use the preferred text channel setting when configured.
 - Changed `.gitignore` to ignore `logs/` and `*.log`.
 - Removed project planning Markdown files from Git tracking while keeping them local and ignored.
 - Removed Markdown file buttons from the launcher panel.
@@ -111,6 +115,8 @@ All notable Bogos changes made so far are summarized here.
 - Confirmed live Discord `/queue` pagination test passes.
 - Confirmed local playback history persistence smoke test passes.
 - Confirmed live Discord `/history` list and replay test passes.
+- Confirmed settings validation smoke test passes.
+- Confirmed live Discord settings test passes.
 - Confirmed `npm run check` passes after each completed phase.
 
 ### Known Issues

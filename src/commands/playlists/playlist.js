@@ -1,5 +1,7 @@
 const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
+const { getSettings } = require("../../utils/serverSettings");
 const { dataPath, readJSON, writeJSON } = require("../../utils/storage");
+const { getPreferredTextChannel } = require("../../utils/textChannel");
 const { requireVoiceChannel } = require("../../utils/voiceChecks");
 
 const MAX_PLAYLISTS = 20;
@@ -126,17 +128,18 @@ module.exports = {
       }
 
       const queue = client.player.getQueue(interaction.guildId);
-      const room = Math.max(0, MAX_SONGS - queue.getAll().length);
+      const maxQueueSize = getSettings(interaction.guildId).maxQueueSize;
+      const room = Math.max(0, maxQueueSize - queue.getAll().length);
       const songs = playlists[key].slice(0, room).map((song) => ({ ...song, requestedBy: interaction.user.username }));
       if (!songs.length) {
-        await interaction.editReply("❌ Queue is already at the 100 song limit.");
+        await interaction.editReply(`❌ Queue is already at this server's ${maxQueueSize} song limit.`);
         return;
       }
 
       const wasEmpty = !queue.getCurrent();
       queue.addMany(songs);
       client.player.saveQueue(interaction.guildId);
-      if (wasEmpty) await client.player.play(interaction.guildId, check.voiceChannel, interaction.channel);
+      if (wasEmpty) await client.player.play(interaction.guildId, check.voiceChannel, getPreferredTextChannel(interaction));
       else await client.player.updateNowPlaying(interaction.guildId).catch(() => {});
 
       await interaction.editReply(`Loaded ${songs.length} of ${playlists[key].length} song(s) from **${key}**.`);
