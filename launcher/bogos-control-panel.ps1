@@ -283,15 +283,17 @@ function Stop-Bogos {
 
     $rootPid = $script:botProcess.Id
 
-function Stop-Tree {
-    param([int]$TargetPid)
-    foreach ($child in @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $TargetPid" -ErrorAction SilentlyContinue)) {
-        Stop-Tree -TargetPid $child.ProcessId
-    }
-    Stop-Process -Id $TargetPid -Force -ErrorAction SilentlyContinue
-}
+    function Stop-Tree {
+        param([int]$TargetPid)
 
-Stop-Tree -TargetPid $rootPid
+        foreach ($child in @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $TargetPid" -ErrorAction SilentlyContinue)) {
+            Stop-Tree -TargetPid $child.ProcessId
+        }
+
+        Stop-Process -Id $TargetPid -Force -ErrorAction SilentlyContinue
+    }
+
+    Stop-Tree -TargetPid $rootPid
 
     if ($ForRestart) {
         $timer = New-Object System.Windows.Forms.Timer

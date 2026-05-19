@@ -35,6 +35,15 @@ function loadCommands(client) {
   }
 }
 
+function describeError(error) {
+  if (!error) return "Unknown error";
+
+  const status = error.response?.status ? ` status=${error.response.status}` : "";
+  const code = error.code ? ` code=${error.code}` : "";
+  const message = error.message || String(error);
+  return `${message}${status}${code}`;
+}
+
 async function executeCommand(interaction, client) {
   const command = client.commands.get(interaction.commandName);
 
@@ -46,8 +55,8 @@ async function executeCommand(interaction, client) {
   try {
     await command.execute(interaction, client);
   } catch (error) {
-    console.error(`Command failed: ${interaction.commandName}`, error);
-    const payload = { content: "An error occurred while running that command.", flags: 64 };
+    console.error(`Command failed: ${interaction.commandName}: ${describeError(error)}`);
+    const payload = { content: error.publicMessage || "An error occurred while running that command.", flags: 64 };
 
     if (interaction.deferred || interaction.replied) {
       await interaction.followUp(payload).catch(() => {});

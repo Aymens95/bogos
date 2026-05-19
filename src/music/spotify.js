@@ -51,6 +51,12 @@ function isPremiumRequiredError(error) {
   return error.response?.status === 403 && message.includes("Active premium subscription required");
 }
 
+function premiumRequiredError(kind) {
+  const error = new Error(`Spotify ${kind} metadata is blocked by Spotify for this app. Try a YouTube link or text search instead.`);
+  error.publicMessage = `Spotify ${kind} links are currently blocked by Spotify for this app. Try a YouTube link or text search instead.`;
+  return error;
+}
+
 function toTrackMetadata(track) {
   const artists = track.artists?.map((artist) => artist.name).join(", ") || "Unknown Artist";
   const duration = Math.round((track.duration_ms || 0) / 1000);
@@ -91,10 +97,17 @@ async function getTrackMetadata(trackId) {
 }
 
 async function getPlaylistTracks(playlistId) {
-  const data = await spotifyGet(`/playlists/${playlistId}`, {
-    fields: "name,tracks(total,items(track(name,duration_ms,artists(name),album(name,images))))",
-    limit: 100
-  });
+  let data;
+  try {
+    data = await spotifyGet(`/playlists/${playlistId}`, {
+      fields: "name,tracks(total,items(track(name,duration_ms,artists(name),album(name,images))))",
+      limit: 100
+    });
+  } catch (error) {
+    if (isPremiumRequiredError(error)) throw premiumRequiredError("playlist");
+    throw error;
+  }
+
   const tracks = data.tracks.items
     .map((item) => item.track)
     .filter(Boolean)
@@ -108,7 +121,14 @@ async function getPlaylistTracks(playlistId) {
 }
 
 async function getAlbumTracks(albumId) {
-  const album = await spotifyGet(`/albums/${albumId}`);
+  let album;
+  try {
+    album = await spotifyGet(`/albums/${albumId}`);
+  } catch (error) {
+    if (isPremiumRequiredError(error)) throw premiumRequiredError("album");
+    throw error;
+  }
+
   const tracks = album.tracks.items.slice(0, 100).map((track) => toTrackMetadata({
     ...track,
     album: {

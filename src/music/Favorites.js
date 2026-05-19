@@ -28,6 +28,8 @@ function sanitizeSong(song) {
     albumArt: song.albumArt,
     youtubeUrl: song.youtubeUrl,
     source: song.source,
+    unresolved: song.unresolved,
+    searchQuery: song.searchQuery,
     addedAt: song.addedAt || new Date().toISOString()
   };
 }

@@ -27,7 +27,9 @@ function cleanSong(song) {
     durationFormatted: song.durationFormatted,
     albumArt: song.albumArt,
     youtubeUrl: song.youtubeUrl,
-    source: song.source
+    source: song.source,
+    unresolved: song.unresolved,
+    searchQuery: song.searchQuery
   };
 }
 

@@ -56,15 +56,31 @@ async function getAudioUrl(youtubeUrl) {
 }
 
 async function getYouTubePlaylist(playlistUrl) {
-  const result = await runYtdlp(["--flat-playlist", "--get-id", playlistUrl]);
-  const urls = result
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map((id) => `https://www.youtube.com/watch?v=${id}`);
+  const result = await runYtdlp(["--flat-playlist", "--playlist-end", "100", "--dump-single-json", playlistUrl]);
+  const playlist = JSON.parse(result);
+  const entries = Array.isArray(playlist.entries) ? playlist.entries.filter(Boolean) : [];
+  const videos = entries
+    .map((entry) => {
+      const id = entry.id || entry.url;
+      if (!id) return null;
+
+      const url = /^https?:\/\//i.test(id)
+        ? id
+        : `https://www.youtube.com/watch?v=${id}`;
+
+      return {
+        title: entry.title || "YouTube video",
+        artist: entry.uploader || entry.channel || "YouTube",
+        duration: Number(entry.duration || 0),
+        thumbnail: entry.thumbnail || null,
+        url
+      };
+    })
+    .filter(Boolean);
 
   return {
-    urls: urls.slice(0, 100),
-    total: urls.length
+    videos: videos.slice(0, 100),
+    total: Number(playlist.playlist_count || playlist.n_entries || videos.length)
   };
 }
 

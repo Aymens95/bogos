@@ -2,6 +2,7 @@ const { createAudioPlayer, createAudioResource, entersState, getVoiceConnection,
 const { spawn } = require("node:child_process");
 const Equalizer = require("./Equalizer");
 const { MusicQueue } = require("./MusicQueue");
+const { resolveSongYouTube } = require("./resolveInput");
 const ytdlp = require("./ytdlp");
 const { LOOP_MODES } = require("../utils/constants");
 const { setDisconnectTimer, clearDisconnectTimer } = require("../utils/disconnectTimer");
@@ -114,13 +115,31 @@ class Player {
 
   async playCurrent(guildId, seekSeconds = 0) {
     const queue = this.getQueue(guildId);
-    const song = queue.getCurrent();
+    let song = queue.getCurrent();
     if (!song) {
       await this.startDisconnectTimer(guildId, "Queue ended.");
       return;
     }
 
-    const audioUrl = await ytdlp.getAudioUrl(song.youtubeUrl);
+    try {
+      if (!song.youtubeUrl || song.unresolved) {
+        song.resolving = true;
+        await this.updateNowPlaying(guildId).catch(() => {});
+        const resolved = await resolveSongYouTube(song);
+        queue.songs[queue.currentIndex] = resolved;
+        song = resolved;
+      }
+
+      const audioUrl = await ytdlp.getAudioUrl(song.youtubeUrl);
+      await this.startAudio(guildId, song, audioUrl, seekSeconds);
+    } catch (error) {
+      console.error(`Could not play ${song.title || "current song"}:`, error.message);
+      await this.skipFailedCurrent(guildId, song, error);
+    }
+  }
+
+  async startAudio(guildId, song, audioUrl, seekSeconds = 0) {
+    const queue = this.getQueue(guildId);
     const audioFilters = [];
     const equalizerFilter = Equalizer.getFFmpegArgs(guildId);
     if (equalizerFilter) audioFilters.push(equalizerFilter);
@@ -155,6 +174,25 @@ class Player {
     queue.startedAt = Date.now();
     this.getAudioPlayer(guildId).play(resource);
     await this.updateNowPlaying(guildId);
+  }
+
+  async skipFailedCurrent(guildId, song, error) {
+    const queue = this.getQueue(guildId);
+    const failedTitle = song?.title || "Unknown song";
+    const failedIndex = queue.currentIndex;
+    queue.songs.splice(failedIndex, 1);
+    queue.currentIndex = failedIndex;
+
+    if (queue.textChannel) {
+      await queue.textChannel.send(`⚠️ Skipped **${failedTitle}**: ${error.message}`).catch(() => {});
+    }
+
+    if (queue.currentIndex >= queue.songs.length) {
+      await this.startDisconnectTimer(guildId, "Queue ended.");
+      return;
+    }
+
+    await this.playCurrent(guildId);
   }
 
   async updateNowPlaying(guildId, page = 1, disabled = false, userId = null) {

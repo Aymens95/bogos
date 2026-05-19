@@ -15,7 +15,7 @@ function buildNowPlayingPayload(queue, disabled = false, page = 1, guildId = nul
   const embed = new EmbedBuilder()
     .setColor(0x1db954)
     .setTitle(song?.title || "Nothing playing")
-    .setDescription(song ? `[Open on YouTube](${song.youtubeUrl})` : "Queue is empty.")
+    .setDescription(song ? song.youtubeUrl ? `[Open on YouTube](${song.youtubeUrl})` : "Resolving YouTube match..." : "Queue is empty.")
     .addFields(
       { name: "Artist", value: song?.artist || "Unknown", inline: true },
       { name: "Duration", value: song?.durationFormatted || "0:00", inline: true },
@@ -53,7 +53,7 @@ function buildNowPlayingPayload(queue, disabled = false, page = 1, guildId = nul
 
   const options = queue.getPage(page).map((item) => ({
     label: `${item.position}. ${item.title}`.slice(0, 100),
-    description: `${item.artist || "Unknown"} • ${item.durationFormatted || "0:00"}`.slice(0, 100),
+    description: `${item.artist || "Unknown"} • ${item.unresolved ? "pending" : item.durationFormatted || "0:00"}`.slice(0, 100),
     value: String(item.position - 1)
   }));
 

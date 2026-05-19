@@ -35,6 +35,49 @@ async function withYouTube(metadata, requestedBy) {
   };
 }
 
+function pendingSong(metadata, requestedBy) {
+  const searchQuery = metadata.artist && metadata.artist !== "Unknown Artist"
+    ? `${metadata.title} ${metadata.artist}`
+    : metadata.title;
+
+  return {
+    ...metadata,
+    youtubeUrl: metadata.youtubeUrl || null,
+    requestedBy,
+    durationFormatted: metadata.durationFormatted || formatDuration(metadata.duration),
+    source: metadata.source || "search",
+    unresolved: !metadata.youtubeUrl,
+    searchQuery
+  };
+}
+
+async function resolveSongYouTube(song) {
+  if (song.youtubeUrl) {
+    return {
+      ...song,
+      unresolved: false,
+      resolving: false
+    };
+  }
+
+  const searchQuery = song.searchQuery || (
+    song.artist && song.artist !== "Unknown Artist"
+      ? `${song.title} ${song.artist}`
+      : song.title
+  );
+  const youtubeUrl = await ytdlp.searchYouTube(searchQuery);
+  if (!youtubeUrl) throw new Error("Could not find audio for this track.");
+
+  return {
+    ...song,
+    youtubeUrl,
+    unresolved: false,
+    resolving: false,
+    searchQuery,
+    durationFormatted: song.durationFormatted || formatDuration(song.duration)
+  };
+}
+
 async function resolveInput(input, requestedBy) {
   const parsed = parseInput(input);
 
@@ -48,8 +91,7 @@ async function resolveInput(input, requestedBy) {
     const playlistId = extractId(parsed.value, "playlist");
     if (!playlistId) throw new Error("Invalid Spotify playlist URL.");
     const playlist = await spotify.getPlaylistTracks(playlistId);
-    const songs = [];
-    for (const track of playlist.tracks) songs.push(await withYouTube(track, requestedBy));
+    const songs = playlist.tracks.map((track) => pendingSong(track, requestedBy));
     return {
       collectionName: playlist.name,
       songs,
@@ -62,8 +104,7 @@ async function resolveInput(input, requestedBy) {
     const albumId = extractId(parsed.value, "album");
     if (!albumId) throw new Error("Invalid Spotify album URL.");
     const album = await spotify.getAlbumTracks(albumId);
-    const songs = [];
-    for (const track of album.tracks) songs.push(await withYouTube(track, requestedBy));
+    const songs = album.tracks.map((track) => pendingSong(track, requestedBy));
     return {
       collectionName: album.name,
       songs,
@@ -74,8 +115,15 @@ async function resolveInput(input, requestedBy) {
 
   if (parsed.type === "youtube_playlist") {
     const playlist = await ytdlp.getYouTubePlaylist(parsed.value);
-    const songs = [];
-    for (const url of playlist.urls) songs.push(await metadataFromYouTube(url, requestedBy));
+    const songs = playlist.videos.map((video) => pendingSong({
+      title: video.title,
+      artist: video.artist,
+      duration: video.duration,
+      durationFormatted: formatDuration(video.duration),
+      albumArt: video.thumbnail,
+      youtubeUrl: video.url,
+      source: "youtube"
+    }, requestedBy));
     return {
       collectionName: "YouTube playlist",
       songs,
@@ -94,5 +142,6 @@ async function resolveInput(input, requestedBy) {
 }
 
 module.exports = {
-  resolveInput
+  resolveInput,
+  resolveSongYouTube
 };
