@@ -281,16 +281,17 @@ function Stop-Bogos {
     Set-LauncherStatus "Stopping"
     Write-Log "Stopping Bogos process tree."
 
-    $id = $script:botProcess.Id
-    Start-Job -ScriptBlock {
-        param($ProcessId)
-        taskkill /PID $ProcessId /T | Out-Null
-        Start-Sleep -Seconds 5
-        $process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
-        if ($process) {
-            taskkill /PID $ProcessId /T /F | Out-Null
-        }
-    } -ArgumentList $id | Out-Null
+    $rootPid = $script:botProcess.Id
+
+function Stop-Tree {
+    param([int]$TargetPid)
+    foreach ($child in @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $TargetPid" -ErrorAction SilentlyContinue)) {
+        Stop-Tree -TargetPid $child.ProcessId
+    }
+    Stop-Process -Id $TargetPid -Force -ErrorAction SilentlyContinue
+}
+
+Stop-Tree -TargetPid $rootPid
 
     if ($ForRestart) {
         $timer = New-Object System.Windows.Forms.Timer
