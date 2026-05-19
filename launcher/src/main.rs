@@ -37,21 +37,46 @@ fn command_exists(name: &str) -> bool {
         .unwrap_or(false)
 }
 
+fn find_powershell() -> Option<String> {
+    let candidates = [
+        (
+            "pwsh",
+            &[r"C:\Program Files\PowerShell\7\pwsh.exe"] as &[&str],
+        ),
+        (
+            "powershell",
+            &[
+                r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+                r"C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe",
+            ] as &[&str],
+        ),
+    ];
+
+    for (name, fallback_paths) in candidates {
+        if command_exists(name) {
+            return Some(name.to_string());
+        }
+
+        for fallback_path in fallback_paths {
+            if Path::new(fallback_path).exists() {
+                return Some((*fallback_path).to_string());
+            }
+        }
+    }
+
+    None
+}
+
 fn run_gui(root: &Path) -> Result<i32, String> {
     let script = root.join("launcher").join("bogos-control-panel.ps1");
     if !script.exists() {
         return Err(format!("Missing launcher GUI script: {}", script.display()));
     }
 
-    let shell = if command_exists("pwsh") {
-        "pwsh"
-    } else if command_exists("powershell") {
-        "powershell"
-    } else {
-        return Err("PowerShell was not found in PATH.".to_string());
-    };
+    let shell = find_powershell()
+        .ok_or_else(|| "PowerShell was not found. Install PowerShell and try again.".to_string())?;
 
-    let mut command = Command::new(shell);
+    let mut command = Command::new(&shell);
     command
         .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
         .arg(&script)
@@ -74,7 +99,11 @@ fn show_error(message: &str) {
         "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('{escaped}', 'Bogos Launcher', 'OK', 'Error') | Out-Null"
     );
 
-    let _ = Command::new("powershell")
+    let shell = find_powershell().unwrap_or_else(|| {
+        r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe".to_string()
+    });
+
+    let _ = Command::new(shell)
         .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &script])
         .status();
 }
