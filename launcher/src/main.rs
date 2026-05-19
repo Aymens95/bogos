@@ -1,6 +1,11 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 
 fn find_project_root() -> Result<PathBuf, String> {
     let exe = env::current_exe().map_err(|error| format!("Could not locate launcher: {error}"))?;
@@ -22,16 +27,6 @@ fn find_project_root() -> Result<PathBuf, String> {
     Err("Could not find the Discord bot project next to the launcher.".to_string())
 }
 
-fn show_error(message: &str) {
-    eprintln!("{message}");
-    let _ = Command::new("cmd")
-        .args(["/C", "pause"])
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .status();
-}
-
 fn command_exists(name: &str) -> bool {
     Command::new("where")
         .arg(name)
@@ -42,49 +37,50 @@ fn command_exists(name: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn run_command(root: &Path, command: &str, args: &[&str]) -> Result<i32, String> {
-    let mut cmd_args = vec!["/C", command];
-    cmd_args.extend_from_slice(args);
+fn run_gui(root: &Path) -> Result<i32, String> {
+    let script = root.join("launcher").join("bogos-control-panel.ps1");
+    if !script.exists() {
+        return Err(format!("Missing launcher GUI script: {}", script.display()));
+    }
 
-    let status = Command::new("cmd")
-        .args(cmd_args)
-        .current_dir(root)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
+    let shell = if command_exists("pwsh") {
+        "pwsh"
+    } else if command_exists("powershell") {
+        "powershell"
+    } else {
+        return Err("PowerShell was not found in PATH.".to_string());
+    };
+
+    let mut command = Command::new(shell);
+    command
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+        .arg(&script)
+        .arg("-ProjectRoot")
+        .arg(root);
+
+    #[cfg(target_os = "windows")]
+    command.creation_flags(0x08000000);
+
+    let status = command
         .status()
-        .map_err(|error| format!("Failed to run {command}: {error}"))?;
+        .map_err(|error| format!("Failed to open Bogos control panel: {error}"))?;
 
     Ok(status.code().unwrap_or(1))
 }
 
-fn run_launcher(root: &Path) -> Result<i32, String> {
-    if !command_exists("node") {
-        return Err("Node.js was not found in PATH. Install Node.js 18 or newer, then try again.".to_string());
-    }
+fn show_error(message: &str) {
+    let escaped = message.replace('\'', "''");
+    let script = format!(
+        "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('{escaped}', 'Bogos Launcher', 'OK', 'Error') | Out-Null"
+    );
 
-    if !command_exists("npm") {
-        return Err("npm was not found in PATH. Reinstall Node.js with npm enabled, then try again.".to_string());
-    }
-
-    if !root.join(".env").exists() {
-        return Err("Missing .env file. Copy .env.example to .env and fill in your Discord and Spotify credentials.".to_string());
-    }
-
-    if !root.join("node_modules").exists() {
-        println!("Installing dependencies...");
-        let code = run_command(root, "npm", &["install"])?;
-        if code != 0 {
-            return Ok(code);
-        }
-    }
-
-    println!("Starting Discord music bot...\n");
-    run_command(root, "npm", &["start"])
+    let _ = Command::new("powershell")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &script])
+        .status();
 }
 
 fn main() {
-    match find_project_root().and_then(|root| run_launcher(&root)) {
+    match find_project_root().and_then(|root| run_gui(&root)) {
         Ok(code) => std::process::exit(code),
         Err(message) => {
             show_error(&message);

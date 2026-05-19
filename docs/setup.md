@@ -57,3 +57,10 @@ On Windows, you can also double-click:
 Discord Music Bot.exe
 ```
 
+This opens the Bogos control panel. It can start, stop, restart, deploy slash commands, run checks, show live logs, and open common project files.
+
+Launcher logs are written to:
+
+```text
+logs/bogos-launcher.log
+```
