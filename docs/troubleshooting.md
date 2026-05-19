@@ -66,3 +66,9 @@ After a restart, join a voice channel and run `/queue action:restore` to reload 
 Autoplay searches YouTube from the last song's artist or title and adds one related song when the queue ends.
 
 It skips obvious non-song results and stops after a bounded run of autoplay additions. If no usable result is found, Bogos reports that autoplay could not find another song and disconnects normally.
+
+## Lyrics Not Found
+
+`/lyrics` uses LRCLIB and defaults to the current song metadata. If no result is found, try `/lyrics query:<song title artist>`.
+
+Some songs may not be available, and long lyrics are truncated to fit Discord embed limits.

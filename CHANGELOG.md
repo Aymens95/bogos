@@ -48,6 +48,8 @@ All notable Bogos changes made so far are summarized here.
 - Added `/queue action:restore` to restore a saved queue and start playback explicitly from voice.
 - Added real autoplay that queues one related YouTube song when the queue ends.
 - Added bounded autoplay recommendation logic that avoids recent duplicates and obvious non-song results.
+- Added `/lyrics` for current-song lyrics and `/lyrics query:<song and artist>` for manual lyrics search.
+- Added LRCLIB lyrics lookup with plain-lyrics preference, synced-lyrics timestamp stripping, timeout handling, and Discord-length truncation.
 
 ### Changed
 
@@ -98,6 +100,8 @@ All notable Bogos changes made so far are summarized here.
 - Confirmed local yt-dlp autoplay lookup returns a related candidate.
 - Confirmed live `/queue action:restore` test restores the saved queue.
 - Confirmed live autoplay test adds and plays a related song when the queue ends.
+- Confirmed local LRCLIB lookup finds lyrics for a known test query.
+- Confirmed live Discord `/lyrics` test passes.
 - Confirmed `npm run check` passes after each completed phase.
 
 ### Known Issues

@@ -14,6 +14,8 @@
 - `/seek timestamp:<MM:SS>` - Seek to a timestamp.
 - `/autoplay` - Toggle autoplay. When enabled, Bogos adds a related YouTube song when the queue ends.
 - `/equalizer filter:<filter>` - Apply an FFmpeg audio filter.
+- `/lyrics` - Show lyrics for the current song.
+- `/lyrics query:<song and artist>` - Search lyrics by title and artist.
 
 ## Queue
 
