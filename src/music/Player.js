@@ -3,6 +3,7 @@ const { spawn } = require("node:child_process");
 const Autoplay = require("./Autoplay");
 const Equalizer = require("./Equalizer");
 const { MusicQueue } = require("./MusicQueue");
+const PlaybackHistory = require("./PlaybackHistory");
 const QueuePersistence = require("./QueuePersistence");
 const VoteSkip = require("./VoteSkip");
 const { resolveSongYouTube } = require("./resolveInput");
@@ -51,6 +52,7 @@ class Player {
     this.queues = new Map();
     this.players = new Map();
     this.connections = new Map();
+    this.currentHistoryKeys = new Map();
   }
 
   getQueue(guildId) {
@@ -200,8 +202,19 @@ class Player {
     queue.paused = false;
     queue.seekOffset = seekSeconds;
     queue.startedAt = Date.now();
+    this.recordHistory(guildId, queue, song);
     this.getAudioPlayer(guildId).play(resource);
     await this.updateNowPlaying(guildId);
+  }
+
+  recordHistory(guildId, queue, song) {
+    const key = `${queue.currentIndex}:${song.youtubeUrl || song.searchQuery || song.title}`;
+    if (this.currentHistoryKeys.get(guildId) === key) return;
+
+    this.currentHistoryKeys.set(guildId, key);
+    if (!PlaybackHistory.add(guildId, song)) {
+      console.warn(`Could not record playback history for guild ${guildId}`);
+    }
   }
 
   async skipFailedCurrent(guildId, song, error) {
@@ -211,6 +224,7 @@ class Player {
     const failedIndex = queue.currentIndex;
     queue.songs.splice(failedIndex, 1);
     queue.currentIndex = failedIndex;
+    this.currentHistoryKeys.delete(guildId);
     this.saveQueue(guildId);
 
     if (queue.textChannel) {
@@ -275,6 +289,7 @@ class Player {
     }
 
     if (nextIndex !== previousIndex) VoteSkip.clear(guildId);
+    if (nextIndex !== previousIndex) this.currentHistoryKeys.delete(guildId);
     this.saveQueue(guildId);
     await this.playCurrent(guildId);
   }
@@ -298,10 +313,12 @@ class Player {
     const queue = this.getQueue(guildId);
     VoteSkip.clear(guildId);
     if (queue.advance() === null) {
+      this.currentHistoryKeys.delete(guildId);
       this.clearSavedQueue(guildId);
       await this.startDisconnectTimer(guildId, "Queue ended.");
       return;
     }
+    this.currentHistoryKeys.delete(guildId);
     this.saveQueue(guildId);
     await this.playCurrent(guildId);
   }
@@ -314,6 +331,7 @@ class Player {
 
     queue.songs.splice(queue.currentIndex, 0, previous);
     queue.currentIndex = queue.songs.indexOf(previous);
+    this.currentHistoryKeys.delete(guildId);
     this.saveQueue(guildId);
     await this.playCurrent(guildId);
     return true;
@@ -323,6 +341,7 @@ class Player {
     const queue = this.getQueue(guildId);
     VoteSkip.clear(guildId);
     queue.clear();
+    this.currentHistoryKeys.delete(guildId);
     this.clearSavedQueue(guildId);
     this.getAudioPlayer(guildId).stop(true);
     await this.startDisconnectTimer(guildId, "Playback stopped.");
@@ -403,6 +422,7 @@ class Player {
     const connection = getVoiceConnection(guildId) || this.connections.get(guildId);
     connection?.destroy();
     this.connections.delete(guildId);
+    this.currentHistoryKeys.delete(guildId);
     Equalizer.reset(guildId);
 
     await safeDeleteMessage(queue.nowPlayingMessage);

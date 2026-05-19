@@ -16,6 +16,8 @@
 - `/equalizer filter:<filter>` - Apply an FFmpeg audio filter.
 - `/lyrics` - Show lyrics for the current song.
 - `/lyrics query:<song and artist>` - Search lyrics by title and artist.
+- `/history list` - Show recently played songs on this server.
+- `/history play position:<number>` - Queue a recently played song.
 
 ## Queue
 

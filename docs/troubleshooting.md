@@ -72,3 +72,9 @@ It skips obvious non-song results and stops after a bounded run of autoplay addi
 `/lyrics` uses LRCLIB and defaults to the current song metadata. If no result is found, try `/lyrics query:<song title artist>`.
 
 Some songs may not be available, and long lyrics are truncated to fit Discord embed limits.
+
+## Playback History Is Empty
+
+Playback history starts recording when a song starts playing. It stores the 50 most recent songs per server under `data/history/`.
+
+Run `/history list` after playing at least one song. Use `/history play position:<number>` from voice to queue an entry again.

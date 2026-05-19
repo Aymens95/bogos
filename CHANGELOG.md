@@ -52,6 +52,8 @@ All notable Bogos changes made so far are summarized here.
 - Added LRCLIB lyrics lookup with plain-lyrics preference, synced-lyrics timestamp stripping, timeout handling, and Discord-length truncation.
 - Added compact paged `/queue` view with First/Previous/Next/Last buttons.
 - Added `/queue page:<number>`.
+- Added persistent per-server playback history under `data/history/{guildId}.json`.
+- Added `/history list` and `/history play position:<number>`.
 
 ### Changed
 
@@ -107,6 +109,8 @@ All notable Bogos changes made so far are summarized here.
 - Confirmed live Discord `/lyrics` test passes.
 - Confirmed `npm run check` passes after queue UI improvements.
 - Confirmed live Discord `/queue` pagination test passes.
+- Confirmed local playback history persistence smoke test passes.
+- Confirmed live Discord `/history` list and replay test passes.
 - Confirmed `npm run check` passes after each completed phase.
 
 ### Known Issues
