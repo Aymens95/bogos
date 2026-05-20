@@ -53,6 +53,16 @@ Known behavior:
 
 Use direct YouTube links when accuracy matters.
 
+## Search Or Play Gets Stuck
+
+Bogos uses yt-dlp for YouTube search. Some queries can make yt-dlp rich metadata search stall, especially when YouTube returns a channel result before videos. Bogos falls back to flat YouTube search rows after a timeout, filters channel rows, and continues with playable video results.
+
+If a search still hangs, update yt-dlp:
+
+```powershell
+python -m pip install -U yt-dlp
+```
+
 ## Large Playlists Take Time
 
 YouTube playlists queue with lightweight metadata first, then resolve audio as each song starts. Spotify playlists and albums also queue lightweight metadata first when Web API or public embed metadata is available.

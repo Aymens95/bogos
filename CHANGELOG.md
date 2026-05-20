@@ -76,6 +76,7 @@ All notable Bogos changes made so far are summarized here.
 - Changed Spotify playlist/album handling to try public embed track rows before failing when the Web API is premium-blocked.
 - Changed Spotify credentials from required-for-Spotify-links to optional API enhancement.
 - Changed command error logging to avoid dumping full Axios objects and bearer tokens.
+- Changed YouTube text search to fall back to fast flat yt-dlp rows when rich metadata search stalls.
 - Changed skip behavior so admins and DJs skip directly while other users vote.
 - Changed `/queue` to include an optional `action` choice while preserving the default queue display behavior.
 - Changed `/autoplay` from a passive flag into active end-of-queue recommendation behavior.
@@ -98,6 +99,7 @@ All notable Bogos changes made so far are summarized here.
 - Fixed unavailable or failed lazy-resolved songs crashing/stalling playback; they now skip cleanly.
 - Fixed failed lazy-resolution edge case that could replay a previous song after removing the last failed item.
 - Fixed `/search` sometimes showing repeated placeholder rows like `YouTube video - YouTube (0:00)`.
+- Fixed `/play` and `/search` getting stuck on queries where yt-dlp rich YouTube search hangs or returns channel rows first.
 
 ### Verified
 
@@ -132,6 +134,8 @@ All notable Bogos changes made so far are summarized here.
 - Confirmed Spotify public embed fallback smoke tests for playlist and album metadata.
 - Confirmed local Spotify/YouTube matcher probes select expected candidates for representative ambiguous tracks.
 - Added matcher regression assertions for duration-sensitive official-audio selection and scene-style false positives.
+- Confirmed local `/play`-style resolution for `DIDINE CANON 16` completes without hanging.
+- Confirmed live Discord `/play` and `/search` tests pass after the yt-dlp search fallback fix.
 - Confirmed `npm run check` passes after each completed phase.
 
 ### Known Issues

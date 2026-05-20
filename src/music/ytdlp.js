@@ -2,11 +2,31 @@ const { spawn } = require("node:child_process");
 const { Readable } = require("node:stream");
 const { selectBestCandidate } = require("./matcher");
 
-function runYtdlp(args) {
+const DEFAULT_YTDLP_TIMEOUT_MS = 30000;
+const SEARCH_METADATA_TIMEOUT_MS = 12000;
+const SEARCH_FLAT_TIMEOUT_MS = 15000;
+
+function runYtdlp(args, options = {}) {
+  const timeoutMs = options.timeoutMs || DEFAULT_YTDLP_TIMEOUT_MS;
+
   return new Promise((resolve, reject) => {
     const child = spawn("yt-dlp", args, { windowsHide: true });
     let stdout = "";
     let stderr = "";
+    let timedOut = false;
+    let settled = false;
+
+    function finish(callback, value) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      callback(value);
+    }
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGTERM");
+    }, timeoutMs);
 
     child.stdout.on("data", (chunk) => {
       stdout += chunk;
@@ -16,12 +36,17 @@ function runYtdlp(args) {
       stderr += chunk;
     });
 
-    child.on("error", reject);
+    child.on("error", (error) => finish(reject, error));
     child.on("close", (code) => {
+      if (timedOut) {
+        finish(reject, new Error(`yt-dlp timed out after ${timeoutMs}ms`));
+        return;
+      }
+
       if (code === 0) {
-        resolve(stdout.trim());
+        finish(resolve, stdout.trim());
       } else {
-        reject(new Error(stderr || `yt-dlp exited with code ${code}`));
+        finish(reject, new Error(stderr || `yt-dlp exited with code ${code}`));
       }
     });
   });
@@ -73,12 +98,13 @@ async function getYouTubeCandidates(query, limit = 5) {
       "--dump-json",
       "--no-playlist",
       `ytsearch${limit}:${query}`
-    ]);
+    ], { timeoutMs: SEARCH_METADATA_TIMEOUT_MS });
 
     return result
       .split(/\r?\n/)
       .filter(Boolean)
       .map((line) => JSON.parse(line))
+      .filter((entry) => isYouTubeVideoEntry(entry))
       .map((entry) => ({
         title: entry.title || "YouTube video",
         artist: entry.uploader || entry.channel || "YouTube",
@@ -88,7 +114,42 @@ async function getYouTubeCandidates(query, limit = 5) {
       }))
       .filter((candidate) => candidate.url);
   } catch {
-    // Fall back to the old flat ID path if metadata search fails.
+    // Rich search can hang on some queries. Fall back to fast flat rows.
+  }
+
+  try {
+    const flatLimit = Math.max(limit + 3, 8);
+    const result = await runYtdlp([
+      "--flat-playlist",
+      "--dump-json",
+      "--no-playlist",
+      `ytsearch${flatLimit}:${query}`
+    ], { timeoutMs: SEARCH_FLAT_TIMEOUT_MS });
+
+    const candidates = result
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => JSON.parse(line))
+      .filter((entry) => isYouTubeVideoEntry(entry))
+      .map((entry) => {
+        const url = entry.url && /^https?:\/\//i.test(entry.url)
+          ? entry.url
+          : entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : null;
+
+        return {
+          title: entry.title || "YouTube video",
+          artist: entry.uploader || entry.channel || "YouTube",
+          duration: Number(entry.duration || 0),
+          thumbnail: entry.thumbnail || entry.thumbnails?.at(-1)?.url || null,
+          url
+        };
+      })
+      .filter((candidate) => candidate.url)
+      .slice(0, limit);
+
+    if (candidates.length) return candidates;
+  } catch {
+    // Fall back to the old flat ID path if flat JSON search fails.
   }
 
   const result = await runYtdlp([
@@ -98,11 +159,12 @@ async function getYouTubeCandidates(query, limit = 5) {
     "--get-id",
     "--no-playlist",
     query
-  ]);
+  ], { timeoutMs: SEARCH_FLAT_TIMEOUT_MS });
 
   const fallbackCandidates = result
     .split(/\r?\n/)
     .filter(Boolean)
+    .filter((id) => !id.startsWith("UC"))
     .map((id) => ({
       title: "YouTube video",
       artist: "YouTube",
@@ -129,12 +191,22 @@ async function getYouTubeCandidates(query, limit = 5) {
   return usable.length ? usable : enriched;
 }
 
+function isYouTubeVideoEntry(entry) {
+  if (!entry) return false;
+  if (entry.ie_key && entry.ie_key !== "Youtube") return false;
+  if (entry.id && String(entry.id).startsWith("UC")) return false;
+
+  const rawUrl = entry.url || entry.webpage_url || entry.original_url || "";
+  if (/youtube\.com\/channel\//i.test(rawUrl) || /youtube\.com\/@/i.test(rawUrl)) return false;
+  return Boolean(entry.id || /youtube\.com\/watch/i.test(rawUrl) || /youtu\.be\//i.test(rawUrl));
+}
+
 async function getAudioUrl(youtubeUrl) {
-  return runYtdlp(["-f", "bestaudio", "-g", "--no-playlist", youtubeUrl]);
+  return runYtdlp(["-f", "bestaudio", "-g", "--no-playlist", youtubeUrl], { timeoutMs: DEFAULT_YTDLP_TIMEOUT_MS });
 }
 
 async function getYouTubePlaylist(playlistUrl) {
-  const result = await runYtdlp(["--flat-playlist", "--playlist-end", "100", "--dump-single-json", playlistUrl]);
+  const result = await runYtdlp(["--flat-playlist", "--playlist-end", "100", "--dump-single-json", playlistUrl], { timeoutMs: DEFAULT_YTDLP_TIMEOUT_MS });
   const playlist = JSON.parse(result);
   const entries = Array.isArray(playlist.entries) ? playlist.entries.filter(Boolean) : [];
   const videos = entries
@@ -171,7 +243,7 @@ async function getAudioStream(youtubeUrl) {
 }
 
 async function getVideoInfo(youtubeUrl) {
-  const json = await runYtdlp(["--dump-single-json", "--no-playlist", youtubeUrl]);
+  const json = await runYtdlp(["--dump-single-json", "--no-playlist", youtubeUrl], { timeoutMs: DEFAULT_YTDLP_TIMEOUT_MS });
   return JSON.parse(json);
 }
 
