@@ -13,8 +13,8 @@
 
 ```text
 YouTube URL
--> yt-dlp extracts best audio stream URL
--> ffmpeg reads stream
+-> yt-dlp extracts best audio stream URL, or a low-bandwidth audio-bearing HLS fallback for live streams
+-> ffmpeg reads stream and ignores any video track
 -> optional equalizer/volume filters via -af
 -> ffmpeg outputs Ogg Opus
 -> @discordjs/voice plays StreamType.OggOpus

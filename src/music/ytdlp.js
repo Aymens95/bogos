@@ -5,6 +5,7 @@ const { selectBestCandidate } = require("./matcher");
 const DEFAULT_YTDLP_TIMEOUT_MS = 30000;
 const SEARCH_METADATA_TIMEOUT_MS = 12000;
 const SEARCH_FLAT_TIMEOUT_MS = 15000;
+const AUDIO_FORMAT_SELECTOR = "bestaudio/worst[acodec!=none]/best";
 
 function runYtdlp(args, options = {}) {
   const timeoutMs = options.timeoutMs || DEFAULT_YTDLP_TIMEOUT_MS;
@@ -202,7 +203,7 @@ function isYouTubeVideoEntry(entry) {
 }
 
 async function getAudioUrl(youtubeUrl) {
-  return runYtdlp(["-f", "bestaudio", "-g", "--no-playlist", youtubeUrl], { timeoutMs: DEFAULT_YTDLP_TIMEOUT_MS });
+  return runYtdlp(["-f", AUDIO_FORMAT_SELECTOR, "-g", "--no-playlist", youtubeUrl], { timeoutMs: DEFAULT_YTDLP_TIMEOUT_MS });
 }
 
 async function getYouTubePlaylist(playlistUrl) {

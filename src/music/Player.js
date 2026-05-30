@@ -198,6 +198,7 @@ class Player {
       "-analyzeduration", "0",
       "-loglevel", "0",
       ...(audioFilters.length ? ["-af", audioFilters.join(",")] : []),
+      "-vn",
       "-c:a", "libopus",
       "-f", "ogg",
       "-ar", "48000",

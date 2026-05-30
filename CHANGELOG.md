@@ -2,6 +2,18 @@
 
 All notable Bogos changes made so far are summarized here.
 
+## 2026-05-30
+
+### Changed
+
+- Changed YouTube audio extraction to fall back to a low-bandwidth audio-bearing format when live streams do not expose a separate `bestaudio` stream.
+- Changed FFmpeg playback to explicitly ignore video tracks when a live-stream fallback URL includes audio and video together.
+
+### Verified
+
+- Confirmed local `yt-dlp` extraction for a YouTube live music stream returns a playable HLS URL.
+- Confirmed local FFmpeg transcode smoke test succeeds for the live-stream fallback URL.
+
 ## 2026-05-19
 
 ### Added
