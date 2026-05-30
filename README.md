@@ -25,6 +25,18 @@ npm run deploy
 npm start
 ```
 
+## Build The Windows Launcher
+
+The one-click launcher is built from the Rust project in `launcher/`. Install Rust/Cargo first, then run:
+
+```powershell
+cd .\launcher
+cargo build --release
+Copy-Item -LiteralPath .\target\release\discord-music-bot-launcher.exe -Destination "..\Discord Music Bot.exe" -Force
+```
+
+The copied `Discord Music Bot.exe` opens the Bogos control panel from the project root. Both the copied exe and `launcher/target/` are local build outputs and are ignored by Git.
+
 ## Notes
 
 - Spotify links are used for metadata, then resolved to YouTube audio. Spotify API credentials are optional; public metadata fallbacks are used when credentials are missing or blocked.

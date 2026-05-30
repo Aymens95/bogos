@@ -66,3 +66,17 @@ Launcher logs are written to:
 ```text
 logs/bogos-launcher.log
 ```
+
+## Build The Windows Launcher
+
+The launcher source lives in `launcher/` and requires Rust/Cargo only when you want to rebuild the executable.
+
+From the project root:
+
+```powershell
+cd .\launcher
+cargo build --release
+Copy-Item -LiteralPath .\target\release\discord-music-bot-launcher.exe -Destination "..\Discord Music Bot.exe" -Force
+```
+
+This refreshes the root `Discord Music Bot.exe` that opens the Bogos control panel. The copied exe and `launcher/target/` are local build outputs and are ignored by Git.
