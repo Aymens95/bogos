@@ -3,20 +3,24 @@ const { formatDuration } = require("../utils/formatDuration");
 const spotify = require("./spotify");
 const ytdlp = require("./ytdlp");
 
-async function metadataFromYouTube(url, requestedBy) {
+async function metadataFromYtdlp(url, requestedBy, source = "youtube") {
   const info = await ytdlp.getVideoInfo(url);
   const duration = Number(info.duration || 0);
 
   return {
-    title: info.title || "YouTube video",
-    artist: info.uploader || "YouTube",
+    title: info.title || "Unknown title",
+    artist: info.uploader || info.channel || "Unknown",
     duration,
     durationFormatted: formatDuration(duration),
     albumArt: info.thumbnail || null,
     youtubeUrl: url,
     requestedBy,
-    source: "youtube"
+    source
   };
+}
+
+async function metadataFromYouTube(url, requestedBy) {
+  return metadataFromYtdlp(url, requestedBy, "youtube");
 }
 
 async function withYouTube(metadata, requestedBy) {
@@ -134,6 +138,34 @@ async function resolveInput(input, requestedBy) {
 
   if (parsed.type === "youtube_video") {
     return { songs: [await metadataFromYouTube(parsed.value, requestedBy)] };
+  }
+
+  if (parsed.type === "soundcloud_track") {
+    return { songs: [await metadataFromYtdlp(parsed.value, requestedBy, "soundcloud")] };
+  }
+
+  if (parsed.type === "bandcamp_track") {
+    return { songs: [await metadataFromYtdlp(parsed.value, requestedBy, "bandcamp")] };
+  }
+
+  if (parsed.type === "soundcloud_playlist" || parsed.type === "bandcamp_album") {
+    const playlist = await ytdlp.getYouTubePlaylist(parsed.value);
+    const source = parsed.type === "soundcloud_playlist" ? "soundcloud" : "bandcamp";
+    const songs = playlist.videos.map((video) => pendingSong({
+      title: video.title,
+      artist: video.artist,
+      duration: video.duration,
+      durationFormatted: formatDuration(video.duration),
+      albumArt: video.thumbnail,
+      youtubeUrl: video.url,
+      source
+    }, requestedBy));
+    return {
+      collectionName: `${source === "soundcloud" ? "SoundCloud" : "Bandcamp"} playlist`,
+      songs,
+      totalTracks: playlist.total,
+      truncated: playlist.total > songs.length
+    };
   }
 
   const youtubeUrl = await ytdlp.searchYouTube(parsed.value);

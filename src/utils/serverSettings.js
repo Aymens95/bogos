@@ -7,7 +7,11 @@ const DEFAULT_SETTINGS = {
   defaultLoopMode: LOOP_MODES.OFF,
   autoplayDefault: false,
   maxQueueSize: 100,
-  commandTextChannelId: null
+  commandTextChannelId: null,
+  requestChannelId: null,
+  alwaysOn: false,
+  loudnorm: false,
+  maxSongDuration: 0
 };
 
 function clampInteger(value, min, max, fallback) {
@@ -21,7 +25,11 @@ function normalizeSettings(settings) {
     defaultLoopMode: Object.values(LOOP_MODES).includes(settings?.defaultLoopMode) ? settings.defaultLoopMode : DEFAULT_SETTINGS.defaultLoopMode,
     autoplayDefault: Boolean(settings?.autoplayDefault),
     maxQueueSize: clampInteger(settings?.maxQueueSize, 1, 200, DEFAULT_SETTINGS.maxQueueSize),
-    commandTextChannelId: settings?.commandTextChannelId || null
+    commandTextChannelId: settings?.commandTextChannelId || null,
+    requestChannelId: settings?.requestChannelId || null,
+    alwaysOn: Boolean(settings?.alwaysOn),
+    loudnorm: Boolean(settings?.loudnorm),
+    maxSongDuration: clampInteger(settings?.maxSongDuration, 0, 10800, DEFAULT_SETTINGS.maxSongDuration)
   };
 }
 

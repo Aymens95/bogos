@@ -118,6 +118,13 @@ class MusicQueue {
     this.currentIndex = index;
     return true;
   }
+
+  findDuplicatePosition(song) {
+    return this.songs.findIndex((s) => {
+      if (song.youtubeUrl && s.youtubeUrl) return s.youtubeUrl === song.youtubeUrl;
+      return s.title === song.title && s.artist === song.artist;
+    });
+  }
 }
 
 module.exports = {

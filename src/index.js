@@ -10,7 +10,8 @@ const { runStartupChecks } = require("./utils/startupChecks");
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildVoiceStates
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMessages
   ]
 });
 

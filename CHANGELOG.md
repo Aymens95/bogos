@@ -4,15 +4,52 @@ All notable Bogos changes made so far are summarized here.
 
 ## 2026-05-30
 
+### Added
+
+- Added live progress bar to the Now Playing embed showing elapsed / total time, auto-updates every 15 seconds.
+- Added SoundCloud track and playlist support via `/play` (direct URLs resolved through yt-dlp).
+- Added Bandcamp track and album support via `/play` (direct URLs resolved through yt-dlp).
+- Added song request channel: users paste song names or links directly into a configured text channel without using slash commands.
+- Added `/settings request-channel channel:<channel>` to configure the song request channel.
+- Added 24/7 mode: bot stays in the voice channel when the queue ends instead of disconnecting.
+- Added `/settings always-on enabled:<true|false>` to toggle 24/7 mode.
+- Added loudness normalization (loudnorm): all songs play at a consistent perceived volume using FFmpeg `loudnorm`.
+- Added `/settings loudnorm enabled:<true|false>` to toggle loudness normalization.
+- Added max song duration limit: songs longer than the configured limit are rejected at queue time.
+- Added `/settings max-song-duration minutes:<number>` to configure the duration limit (0 = no limit).
+- Added duplicate song detection: `/play` warns and blocks adding a song already present in the queue; playlist imports silently skip duplicates and report how many were filtered.
+- Added `/queue action:Export to file` that sends the full queue as a `queue.txt` file attachment.
+- Added 6 new equalizer presets: Pop, Jazz, Metal, Classical, Echo, Karaoke.
+- Added smarter autoplay using YouTube Mix/Radio for the seed song's video ID before falling back to text search.
+- Added `messageCreate` event handler for the song request channel feature.
+- Added `GuildMessages` intent to support the song request channel.
+- Added `findDuplicatePosition()` method to `MusicQueue` for duplicate detection.
+- Added `friendlyError()` helper in `Player` that maps raw yt-dlp error strings to readable Discord messages.
+- Added `extractVideoId()` helper in `Autoplay` for YouTube Mix URL construction.
+
 ### Changed
 
 - Changed YouTube audio extraction to fall back to a low-bandwidth audio-bearing format when live streams do not expose a separate `bestaudio` stream.
 - Changed FFmpeg playback to explicitly ignore video tracks when a live-stream fallback URL includes audio and video together.
+- Changed `Player.startAudio()` to start a 15-second progress bar refresh interval per guild and clear it on disconnect.
+- Changed `Player.startDisconnectTimer()` to skip the disconnect entirely when 24/7 mode is enabled.
+- Changed `Player.skipFailedCurrent()` to use human-readable error messages instead of raw yt-dlp stderr output.
+- Changed `Player.startAudio()` to apply the `loudnorm` FFmpeg filter when the server setting is enabled.
+- Changed `metadataFromYouTube` in `resolveInput.js` to delegate to a shared `metadataFromYtdlp` helper used by all direct-URL sources (YouTube, SoundCloud, Bandcamp).
+- Changed `/settings view` embed to display the four new settings: request channel, 24/7 mode, loudnorm, and max song duration.
+- Changed `serverSettings` schema to include `requestChannelId`, `alwaysOn`, `loudnorm`, and `maxSongDuration` with safe defaults so existing guilds auto-migrate.
+- Changed autoplay candidate selection to prefer YouTube Mix/Radio results over generic artist-name text searches when a YouTube URL is available for the seed song.
 
-### Verified
+### Known Issues
 
-- Confirmed local `yt-dlp` extraction for a YouTube live music stream returns a playable HLS URL.
-- Confirmed local FFmpeg transcode smoke test succeeds for the live-stream fallback URL.
+- Spotify playlist/album Web API access may be blocked:
+  - `403 Active premium subscription required for the owner of the app`
+- Spotify track fallback still depends on weaker oEmbed metadata when Spotify blocks full track metadata.
+- Spotify fallback matching is improved, but wrong YouTube matches can still happen when source metadata is weak.
+- Spotify playlist/album public embed fallback is lower confidence and may expose fewer tracks than the full Spotify app.
+- Long YouTube videos can lag when using rewind/forward because seeking restarts FFmpeg and reopens the stream.
+- Equalizer changes restart the current song from the beginning.
+- Song request channel requires the `MessageContent` privileged intent to be enabled in the Discord Developer Portal before adding it to `index.js`.
 
 ## 2026-05-19
 

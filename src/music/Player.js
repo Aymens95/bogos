@@ -48,6 +48,17 @@ async function deleteRecentNowPlayingEmbeds(queue, client) {
   }
 }
 
+function friendlyError(errorMessage) {
+  const msg = String(errorMessage || "");
+  if (/sign in|age.?restrict/i.test(msg)) return "⛔ Age-restricted content — cannot play.";
+  if (/private video/i.test(msg)) return "🔒 This video is private.";
+  if (/not available/i.test(msg)) return "🌍 Not available in this region.";
+  if (/copyright/i.test(msg)) return "©️ Blocked due to a copyright claim.";
+  if (/429|too many requests/i.test(msg)) return "⏳ Rate-limited by YouTube. Try again in a moment.";
+  if (/timed out/i.test(msg)) return "⏱️ Request timed out. Try again.";
+  return "❌ Could not play this track.";
+}
+
 class Player {
   constructor(client) {
     this.client = client;
@@ -55,6 +66,7 @@ class Player {
     this.players = new Map();
     this.connections = new Map();
     this.currentHistoryKeys = new Map();
+    this.progressIntervals = new Map();
   }
 
   getQueue(guildId) {
@@ -184,10 +196,12 @@ class Player {
 
   async startAudio(guildId, song, audioUrl, seekSeconds = 0) {
     const queue = this.getQueue(guildId);
+    const settings = getSettings(guildId);
     const audioFilters = [];
     const equalizerFilter = Equalizer.getFFmpegArgs(guildId);
     if (equalizerFilter) audioFilters.push(equalizerFilter);
     if (queue.volume !== 100) audioFilters.push(`volume=${queue.volume / 100}`);
+    if (settings.loudnorm) audioFilters.push("loudnorm=I=-16:TP=-1.5:LRA=11");
 
     const ffmpegArgs = [
       "-reconnect", "1",
@@ -217,6 +231,14 @@ class Player {
     queue.paused = false;
     queue.seekOffset = seekSeconds;
     queue.startedAt = Date.now();
+
+    const existingInterval = this.progressIntervals.get(guildId);
+    if (existingInterval) clearInterval(existingInterval);
+    const progressInterval = setInterval(() => {
+      this.updateNowPlaying(guildId).catch(() => {});
+    }, 15000);
+    this.progressIntervals.set(guildId, progressInterval);
+
     this.recordHistory(guildId, queue, song);
     this.getAudioPlayer(guildId).play(resource);
     await this.updateNowPlaying(guildId);
@@ -243,7 +265,7 @@ class Player {
     this.saveQueue(guildId);
 
     if (queue.textChannel) {
-      await queue.textChannel.send(`⚠️ Skipped **${failedTitle}**: ${error.message}`).catch(() => {});
+      await queue.textChannel.send(`⚠️ Skipped **${failedTitle}**: ${friendlyError(error.message)}`).catch(() => {});
     }
 
     if (queue.currentIndex >= queue.songs.length) {
@@ -405,6 +427,12 @@ class Player {
     const queue = this.getQueue(guildId);
     if (queue.paused) return;
 
+    const settings = getSettings(guildId);
+    if (settings.alwaysOn) {
+      await this.updateNowPlaying(guildId, 1, true).catch(() => {});
+      return;
+    }
+
     if (queue.textChannel && !queue.disconnectMessage) {
       queue.disconnectMessage = await queue.textChannel.send(`👋 ${reason} Disconnecting in 5 seconds...`).catch(() => null);
     }
@@ -439,6 +467,10 @@ class Player {
     this.connections.delete(guildId);
     this.currentHistoryKeys.delete(guildId);
     Equalizer.reset(guildId);
+
+    const progressInterval = this.progressIntervals.get(guildId);
+    if (progressInterval) clearInterval(progressInterval);
+    this.progressIntervals.delete(guildId);
 
     await safeDeleteMessage(queue.nowPlayingMessage);
     queue.nowPlayingMessage = null;

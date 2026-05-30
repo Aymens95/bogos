@@ -9,6 +9,21 @@ const Equalizer = require("../music/Equalizer");
 const Favorites = require("../music/Favorites");
 const { formatDuration } = require("./formatDuration");
 
+function buildProgressBar(queue) {
+  const song = queue.getCurrent();
+  if (!song || !song.duration || song.duration <= 0 || queue.paused) return null;
+
+  const elapsed = queue.startedAt
+    ? Math.min((queue.seekOffset || 0) + Math.floor((Date.now() - queue.startedAt) / 1000), song.duration)
+    : (queue.seekOffset || 0);
+
+  const progress = elapsed / song.duration;
+  const filled = Math.round(progress * 20);
+  const bar = "█".repeat(filled) + "░".repeat(20 - filled);
+
+  return `\`[${bar}]\` ${formatDuration(elapsed)} / ${song.durationFormatted || formatDuration(song.duration)}`;
+}
+
 function getQueueTotalDuration(queue) {
   const seconds = queue.getAll().reduce((total, song) => {
     const duration = Number(song.duration || 0);
@@ -22,10 +37,14 @@ function buildNowPlayingPayload(queue, disabled = false, page = 1, guildId = nul
   const song = queue.getCurrent();
   const filter = guildId ? Equalizer.getFilter(guildId) : "Normal";
   const isFavorited = userId && song ? Favorites.isFavorite(userId, song) : false;
+  const progressBar = song ? buildProgressBar(queue) : null;
+  const linkLine = song ? (song.youtubeUrl ? `[Open on YouTube](${song.youtubeUrl})` : "Resolving YouTube match...") : "Queue is empty.";
+  const description = progressBar ? `${progressBar}\n${linkLine}` : linkLine;
+
   const embed = new EmbedBuilder()
     .setColor(0x1db954)
     .setTitle(song?.title || "Nothing playing")
-    .setDescription(song ? song.youtubeUrl ? `[Open on YouTube](${song.youtubeUrl})` : "Resolving YouTube match..." : "Queue is empty.")
+    .setDescription(description)
     .addFields(
       { name: "Artist", value: song?.artist || "Unknown", inline: true },
       { name: "Duration", value: song?.durationFormatted || "0:00", inline: true },

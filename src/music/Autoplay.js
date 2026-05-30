@@ -1,6 +1,16 @@
 const ytdlp = require("./ytdlp");
 const { formatDuration } = require("../utils/formatDuration");
 
+function extractVideoId(youtubeUrl) {
+  try {
+    const url = new URL(youtubeUrl);
+    if (url.hostname === "youtu.be") return url.pathname.slice(1).split("?")[0];
+    return url.searchParams.get("v");
+  } catch {
+    return null;
+  }
+}
+
 const MAX_AUTOPLAY_ADDITIONS = 10;
 const MIN_DURATION_SECONDS = 45;
 const MAX_DURATION_SECONDS = 20 * 60;
@@ -33,23 +43,7 @@ function isUsableCandidate(candidate, seenKeys) {
   return !/\b(reaction|trailer|review|interview|tutorial|karaoke|instrumental)\b/.test(text);
 }
 
-async function getNextSong(queue) {
-  if (!queue.autoplay) return null;
-  if (queue.autoplayCount >= MAX_AUTOPLAY_ADDITIONS) return null;
-
-  const seed = queue.history[queue.history.length - 1] || queue.getCurrent();
-  if (!seed?.title) return null;
-
-  const seenKeys = new Set([
-    ...queue.songs.map(songKey),
-    ...queue.history.slice(-25).map(songKey)
-  ]);
-
-  const candidates = await ytdlp.getYouTubeCandidates(buildQuery(seed), 10);
-  const candidate = candidates.find((item) => isUsableCandidate(item, seenKeys));
-  if (!candidate) return null;
-
-  queue.autoplayCount += 1;
+function makeSong(candidate) {
   return {
     title: candidate.title,
     artist: candidate.artist || "YouTube",
@@ -62,6 +56,47 @@ async function getNextSong(queue) {
     unresolved: false,
     autoplay: true
   };
+}
+
+async function getNextSong(queue) {
+  if (!queue.autoplay) return null;
+  if (queue.autoplayCount >= MAX_AUTOPLAY_ADDITIONS) return null;
+
+  const seed = queue.history[queue.history.length - 1] || queue.getCurrent();
+  if (!seed?.title) return null;
+
+  const seenKeys = new Set([
+    ...queue.songs.map(songKey),
+    ...queue.history.slice(-25).map(songKey)
+  ]);
+
+  // Try YouTube Mix/Radio for more accurate related songs
+  if (seed.youtubeUrl) {
+    const videoId = extractVideoId(seed.youtubeUrl);
+    if (videoId) {
+      try {
+        const mixUrl = `https://www.youtube.com/watch?v=${videoId}&list=RD${videoId}`;
+        const playlist = await ytdlp.getYouTubePlaylist(mixUrl);
+        const shuffled = playlist.videos.slice().sort(() => Math.random() - 0.5);
+        for (const video of shuffled) {
+          const candidate = { url: video.url, title: video.title, artist: video.artist, duration: video.duration, thumbnail: video.thumbnail };
+          if (isUsableCandidate(candidate, seenKeys)) {
+            queue.autoplayCount += 1;
+            return makeSong(candidate);
+          }
+        }
+      } catch {
+        // Fall through to text search
+      }
+    }
+  }
+
+  const candidates = await ytdlp.getYouTubeCandidates(buildQuery(seed), 10);
+  const candidate = candidates.find((item) => isUsableCandidate(item, seenKeys));
+  if (!candidate) return null;
+
+  queue.autoplayCount += 1;
+  return makeSong(candidate);
 }
 
 module.exports = {
